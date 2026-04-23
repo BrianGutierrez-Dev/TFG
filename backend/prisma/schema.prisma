@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum CarCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  DAMAGED
+}
+
+enum FuelLevel {
+  FULL
+  THREE_QUARTERS
+  HALF
+  ONE_QUARTER
+  EMPTY
+}
+
+enum IncidentType {
+  PAYMENT
+  DAMAGE
+  NOT_RETURNED
+  LATE_RETURN
+  THEFT
+  ACCIDENT
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RepairStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Employee {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  carReturns CarReturn[]
+}
+
+model Client {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  phone         String
+  dni           String   @unique
+  address       String?
+  isBlacklisted Boolean  @default(false)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cars      Car[]
+  contracts RentalContract[]
+  incidents Incident[]
+}
+
+model Car {
+  id           Int      @id @default(autoincrement())
+  licensePlate String   @unique
+  brand        String
+  model        String
+  year         Int
+  color        String?
+  clientId     Int?
+  client       Client?  @relation(fields: [clientId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  contracts    RentalContract[]
+  maintenances Maintenance[]
+  repairs      Repair[]
+}
+
+model RentalContract {
+  id         Int            @id @default(autoincrement())
+  clientId   Int
+  client     Client         @relation(fields: [clientId], references: [id])
+  carId      Int
+  car        Car            @relation(fields: [carId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  status     ContractStatus @default(ACTIVE)
+  totalPrice Float
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  carReturn CarReturn?
+  incidents Incident[]
+}
+
+model CarReturn {
+  id                Int            @id @default(autoincrement())
+  contractId        Int            @unique
+  contract          RentalContract @relation(fields: [contractId], references: [id])
+  employeeId        Int
+  employee          Employee       @relation(fields: [employeeId], references: [id])
+  returnDate        DateTime       @default(now())
+  onTime            Boolean
+  condition         CarCondition
+  fuelLevel         FuelLevel?
+  damagesFound      Boolean        @default(false)
+  damageDescription String?
+  notes             String?
+  createdAt         DateTime       @default(now())
+}
+
+model Incident {
+  id          Int             @id @default(autoincrement())
+  clientId    Int
+  client      Client          @relation(fields: [clientId], references: [id])
+  contractId  Int?
+  contract    RentalContract? @relation(fields: [contractId], references: [id])
+  type        IncidentType
+  description String
+  severity    Severity        @default(MEDIUM)
+  resolved    Boolean         @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Maintenance {
+  id          Int       @id @default(autoincrement())
+  carId       Int
+  car         Car       @relation(fields: [carId], references: [id])
+  type        String
+  description String?
+  cost        Float?
+  date        DateTime
+  nextDueDate DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Repair {
+  id          Int          @id @default(autoincrement())
+  carId       Int
+  car         Car          @relation(fields: [carId], references: [id])
+  description String
+  cost        Float?
+  status      RepairStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}

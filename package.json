@@ -1,0 +1,61 @@
+{
+  "name": "tfg",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron/dist/main.js",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "electron:dev": "concurrently -n backend,frontend,electron -c blue,green,yellow \"npm run dev -w backend\" \"npm run dev -w frontend\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "npm run build -w frontend && npm run build -w backend && tsc -p electron/tsconfig.json",
+    "electron:build": "npm run build && electron-builder",
+    "start": "npm run start -w backend",
+    "seed": "npm run seed -w backend",
+    "prisma:migrate": "npm run prisma:migrate -w backend",
+    "prisma:generate": "npm run prisma:generate -w backend",
+    "prisma:studio": "npm run prisma:studio -w backend"
+  },
+  "build": {
+    "appId": "com.tfg.app",
+    "productName": "TFG",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/dist/**",
+      "node_modules/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist",
+        "to": "backend"
+      },
+      {
+        "from": "frontend/dist",
+        "to": "frontend"
+      },
+      {
+        "from": "backend/.env",
+        "to": ".env"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "frontend/public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^8.0.3"
+  }
+}
