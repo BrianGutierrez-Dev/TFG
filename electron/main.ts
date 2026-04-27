@@ -49,10 +49,10 @@ async function createWindow() {
 
   if (isDev) {
     await waitForBackend('http://localhost:3000/api/employees');
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://localhost:4200');
   } else {
     await waitForBackend('http://localhost:3000/api/employees');
-    mainWindow.loadFile(path.join(process.resourcesPath, 'frontend/index.html'));
+    mainWindow.loadFile(path.join(process.resourcesPath, 'frontend/browser/index.html'));
   }
 
   mainWindow.on('closed', () => { mainWindow = null; });
