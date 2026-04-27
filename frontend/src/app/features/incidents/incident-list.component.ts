@@ -108,7 +108,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
                 <select formControlName="clientId" class="form-select">
                   <option [ngValue]="null" disabled>Seleccionar cliente</option>
                   @for (c of clientOptions(); track c.id) {
-                    <option [value]="c.id">{{ c.name }} — {{ c.dni }}</option>
+                    <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
                   }
                 </select>
               </div>
@@ -117,7 +117,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
                 <select formControlName="contractId" class="form-select">
                   <option [ngValue]="null">Sin contrato</option>
                   @for (r of rentalOptions(); track r.id) {
-                    <option [value]="r.id">#{{ r.id }} — {{ r.car.licensePlate }} ({{ r.car.brand }} {{ r.car.model }})</option>
+                    <option [ngValue]="r.id">#{{ r.id }} — {{ r.car.licensePlate }} ({{ r.car.brand }} {{ r.car.model }})</option>
                   }
                 </select>
               </div>

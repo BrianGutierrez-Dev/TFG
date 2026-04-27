@@ -89,7 +89,7 @@ import type { Maintenance, Car } from '../../core/models';
                 <select formControlName="carId" class="form-select">
                   <option [ngValue]="null" disabled>Seleccionar vehículo</option>
                   @for (c of carOptions(); track c.id) {
-                    <option [value]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                    <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
                   }
                 </select>
               </div>

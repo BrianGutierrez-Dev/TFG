@@ -108,7 +108,7 @@ import type { Car as CarModel, Client } from '../../core/models';
                 <select formControlName="clientId" class="form-select">
                   <option [ngValue]="null">Sin propietario</option>
                   @for (client of clients(); track client.id) {
-                    <option [value]="client.id">{{ client.name }} — {{ client.dni }}</option>
+                    <option [ngValue]="client.id">{{ client.name }} — {{ client.dni }}</option>
                   }
                 </select>
               </div>

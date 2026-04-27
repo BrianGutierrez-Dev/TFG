@@ -99,7 +99,7 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
                 <select formControlName="clientId" class="form-select">
                   <option [ngValue]="null" disabled>Seleccionar cliente</option>
                   @for (c of clientOptions(); track c.id) {
-                    <option [value]="c.id">{{ c.name }} — {{ c.dni }}</option>
+                    <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
                   }
                 </select>
               </div>
@@ -108,7 +108,7 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
                 <select formControlName="carId" class="form-select">
                   <option [ngValue]="null" disabled>Seleccionar vehículo</option>
                   @for (c of carOptions(); track c.id) {
-                    <option [value]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                    <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
                   }
                 </select>
               </div>
