@@ -87,8 +87,8 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
     }
 
     @if (showModal()) {
-      <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+      <div class="modal-overlay">
+        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-base font-semibold text-gray-900">Nuevo contrato</h2>
           </div>

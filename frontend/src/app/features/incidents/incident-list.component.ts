@@ -96,8 +96,8 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
     }
 
     @if (showModal()) {
-      <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+      <div class="modal-overlay">
+        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-base font-semibold text-gray-900">Nueva incidencia</h2>
           </div>
@@ -157,8 +157,8 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
     }
 
     @if (deleteId()) {
-      <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
+      <div class="modal-overlay">
+        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
           <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar incidencia?</h2>
           <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
           <div class="flex justify-end gap-3">

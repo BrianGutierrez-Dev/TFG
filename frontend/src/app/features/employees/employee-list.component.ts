@@ -77,8 +77,8 @@ import type { Employee, Role } from '../../core/models';
     }
 
     @if (showModal()) {
-      <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+      <div class="modal-overlay">
+        <div class="modal-dialog bg-white rounded-2xl max-w-md shadow-2xl">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-base font-semibold text-gray-900">{{ editingId() ? 'Editar empleado' : 'Nuevo empleado' }}</h2>
           </div>
@@ -114,8 +114,8 @@ import type { Employee, Role } from '../../core/models';
     }
 
     @if (deleteId()) {
-      <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
+      <div class="modal-overlay">
+        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
           <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar empleado?</h2>
           <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
           <div class="flex justify-end gap-3">

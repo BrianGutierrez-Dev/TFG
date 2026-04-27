@@ -31,11 +31,11 @@ export class ButtonComponent {
   readonly Loader2 = Loader2;
 
   private readonly variants: Record<string, string> = {
-    primary:   'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300',
+    primary:   'bg-gray-900 text-white hover:bg-gray-700 disabled:bg-gray-400',
     success:   'bg-green-600 text-white hover:bg-green-700 disabled:bg-green-300',
     warning:   'bg-amber-500 text-white hover:bg-amber-600 disabled:bg-amber-300',
     danger:    'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300',
-    secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+    secondary: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50',
     ghost:     'text-gray-600 hover:bg-gray-100',
   };
 
