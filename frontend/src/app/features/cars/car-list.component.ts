@@ -86,19 +86,26 @@ import type { Car as CarModel, Client } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Matrícula *</label>
-                  <input formControlName="licensePlate" class="form-input font-mono uppercase" maxlength="8" placeholder="0000 AAA">
+                  <input formControlName="licensePlate" class="form-input font-mono uppercase"
+                         [class.form-field-error]="isInvalid('licensePlate')"
+                         maxlength="8" placeholder="0000 AAA">
                 </div>
                 <div>
                   <label class="form-label">Marca *</label>
-                  <input formControlName="brand" class="form-input" maxlength="50" placeholder="Toyota">
+                  <input formControlName="brand" class="form-input"
+                         [class.form-field-error]="isInvalid('brand')"
+                         maxlength="50" placeholder="Toyota">
                 </div>
                 <div>
                   <label class="form-label">Modelo *</label>
-                  <input formControlName="model" class="form-input" maxlength="50" placeholder="Corolla">
+                  <input formControlName="model" class="form-input"
+                         [class.form-field-error]="isInvalid('model')"
+                         maxlength="50" placeholder="Corolla">
                 </div>
                 <div>
                   <label class="form-label">Año *</label>
-                  <input formControlName="year" type="number" min="1900" [max]="maxVehicleYear" class="form-input" placeholder="2020">
+                  <input formControlName="year" type="number" min="1900" [max]="maxVehicleYear"
+                         class="form-input" [class.form-field-error]="isInvalid('year')" placeholder="2020">
                 </div>
                 <div>
                   <label class="form-label">Color</label>
@@ -116,7 +123,7 @@ import type { Car as CarModel, Client } from '../../core/models';
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+                <app-button type="button" [loading]="saving()" (clicked)="save()">Guardar</app-button>
               </div>
             </form>
           </div>
@@ -161,6 +168,7 @@ export class CarListComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  submitted = signal(false);
 
   form = this.fb.group({
     licensePlate: ['', [Validators.required, Validators.pattern(/^\d{4}\s?[A-Za-z]{3}$/)]],
@@ -192,26 +200,30 @@ export class CarListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
+    this.submitted.set(false);
     this.form.reset({ year: new Date().getFullYear(), clientId: null });
     this.showModal.set(true);
   }
 
   openEdit(c: CarModel) {
     this.editingId.set(c.id);
+    this.submitted.set(false);
     this.form.patchValue({ ...c, clientId: c.clientId ?? null });
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
 
   save() {
+    this.submitted.set(true);
     if (this.form.invalid) {
-      Object.values(this.form.controls).forEach(control => {
-        if (control.invalid) {
-          control.markAsTouched();
-          control.markAsDirty();
-        }
-      });
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
     this.saving.set(true);
