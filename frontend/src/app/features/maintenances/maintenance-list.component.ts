@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Trash2, Wrench, Search } from 'lucide-angular';
 import { MaintenancesService } from '../../core/services/maintenances.service';
@@ -8,6 +8,15 @@ import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { ButtonComponent } from '../../shared/components/button.component';
 import type { Maintenance, Car } from '../../core/models';
+
+function maintenanceDateRangeValidator(control: AbstractControl): ValidationErrors | null {
+  const date = control.get('date')?.value;
+  const nextDueDate = control.get('nextDueDate')?.value;
+
+  if (!date || !nextDueDate) return null;
+
+  return new Date(nextDueDate) <= new Date(date) ? { dateRange: true } : null;
+}
 
 @Component({
   selector: 'app-maintenance-list',
@@ -20,6 +29,13 @@ import type { Maintenance, Car } from '../../core/models';
         Nuevo mantenimiento
       </app-button>
     </app-page-header>
+
+    @if (showModal() && dateRangeInvalid()) {
+      <div class="fixed left-4 top-4 z-[70] w-64 min-h-24 rounded-md border border-red-200 bg-red-50 p-4 shadow-xl">
+        <p class="text-sm font-semibold text-red-700">Fechas no válidas</p>
+        <p class="mt-1 text-sm leading-5 text-red-600">La próxima revisión debe ser posterior a la fecha del mantenimiento.</p>
+      </div>
+    }
 
     <div class="flex items-center gap-3 mb-5">
       <div class="relative flex-1 max-w-xs">
@@ -87,7 +103,7 @@ import type { Maintenance, Car } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Vehículo *</label>
-                  <select formControlName="carId" class="form-select">
+                  <select formControlName="carId" class="form-select" [class.form-field-error]="isInvalid('carId')">
                     <option [ngValue]="null" disabled>Seleccionar vehículo</option>
                     @for (c of carOptions(); track c.id) {
                       <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
@@ -96,28 +112,33 @@ import type { Maintenance, Car } from '../../core/models';
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Tipo *</label>
-                  <input formControlName="type" class="form-input" placeholder="Aceite, Neumáticos, ITV...">
+                  <input formControlName="type" class="form-input" [class.form-field-error]="isInvalid('type')"
+                         maxlength="80" placeholder="Aceite, Neumáticos, ITV...">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Descripción</label>
-                  <textarea formControlName="description" class="form-textarea" rows="2" placeholder="Detalles del mantenimiento..."></textarea>
+                  <textarea formControlName="description" class="form-textarea" rows="2" maxlength="500"
+                            placeholder="Detalles del mantenimiento..."></textarea>
                 </div>
                 <div>
                   <label class="form-label">Coste (€)</label>
-                  <input formControlName="cost" type="number" step="0.01" class="form-input" placeholder="0.00">
+                  <input formControlName="cost" type="number" min="0.01" step="0.01"
+                         class="form-input" [class.form-field-error]="isInvalid('cost')" placeholder="0.00">
                 </div>
                 <div>
                   <label class="form-label">Fecha *</label>
-                  <input formControlName="date" type="date" class="form-input">
+                  <input formControlName="date" type="date" class="form-input"
+                         [class.form-field-error]="isInvalid('date') || dateRangeInvalid()">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Próxima revisión</label>
-                  <input formControlName="nextDueDate" type="date" class="form-input">
+                  <input formControlName="nextDueDate" type="date" class="form-input"
+                         [class.form-field-error]="dateRangeInvalid()">
                 </div>
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+                <app-button type="button" [loading]="saving()" (clicked)="save()">Guardar</app-button>
               </div>
             </form>
           </div>
@@ -159,14 +180,17 @@ export class MaintenanceListComponent implements OnInit {
   search = signal('');
   showModal = signal(false);
   deleteId = signal<number | null>(null);
+  submitted = signal(false);
 
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
-    type: ['', Validators.required],
-    description: [''],
-    cost: [null as number | null],
+    type: ['', [Validators.required, Validators.maxLength(80), Validators.pattern(/^.*\S.*$/)]],
+    description: ['', Validators.maxLength(500)],
+    cost: [null as number | null, Validators.min(0.01)],
     date: [new Date().toISOString().split('T')[0], Validators.required],
     nextDueDate: [''],
+  }, {
+    validators: maintenanceDateRangeValidator,
   });
 
   filtered = computed(() => {
@@ -189,14 +213,31 @@ export class MaintenanceListComponent implements OnInit {
   }
 
   openCreate() {
+    this.submitted.set(false);
     this.form.reset({ date: new Date().toISOString().split('T')[0] });
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
+  dateRangeInvalid() {
+    return this.form.hasError('dateRange')
+      && !!this.form.get('date')?.value
+      && !!this.form.get('nextDueDate')?.value;
+  }
 
   save() {
-    if (this.form.invalid) return;
+    this.submitted.set(true);
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
+      return;
+    }
     this.saving.set(true);
     const v = this.form.value;
     this.maintenancesService.create({

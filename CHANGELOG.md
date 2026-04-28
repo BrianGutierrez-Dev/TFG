@@ -6,6 +6,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Validaciones en creación de mantenimientos                             | C -> [1.2.8]              |
 | 28/04/2026  | Marcado explícito de campos obligatorios en vehículos                  | C -> [1.2.7]              |
 | 28/04/2026  | Validaciones en formulario de vehículos                                | C -> [1.2.6]              |
 | 28/04/2026  | Validaciones en creación de incidencias                                | C -> [1.2.5]              |

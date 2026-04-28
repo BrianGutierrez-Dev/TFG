@@ -44,16 +44,17 @@ export async function update(
   id: number,
   data: Partial<{
     type: string;
-    description: string;
-    cost: number;
+    description: string | null;
+    cost: number | null;
     date: string;
-    nextDueDate: string;
+    nextDueDate: string | null;
   }>
 ) {
   await getById(id);
   const updateData: Record<string, unknown> = { ...data };
   if (data.date) updateData.date = new Date(data.date);
   if (data.nextDueDate) updateData.nextDueDate = new Date(data.nextDueDate);
+  if (data.nextDueDate === null) updateData.nextDueDate = null;
   return prisma.maintenance.update({ where: { id }, data: updateData, include });
 }
 
