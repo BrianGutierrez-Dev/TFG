@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Pencil, Trash2, Hammer, Search } from 'lucide-angular';
 import { RepairsService } from '../../core/services/repairs.service';
@@ -9,6 +9,15 @@ import { PageHeaderComponent } from '../../shared/components/page-header.compone
 import { ButtonComponent } from '../../shared/components/button.component';
 import { RepairBadgeComponent } from '../../shared/components/badge.component';
 import type { Repair, Car, RepairStatus } from '../../core/models';
+
+function repairDateRangeValidator(control: AbstractControl): ValidationErrors | null {
+  const startDate = control.get('startDate')?.value;
+  const endDate = control.get('endDate')?.value;
+
+  if (!startDate || !endDate) return null;
+
+  return new Date(endDate) < new Date(startDate) ? { dateRange: true } : null;
+}
 
 @Component({
   selector: 'app-repair-list',
@@ -21,6 +30,13 @@ import type { Repair, Car, RepairStatus } from '../../core/models';
         Nueva reparación
       </app-button>
     </app-page-header>
+
+    @if (showModal() && dateRangeInvalid()) {
+      <div class="fixed left-4 top-4 z-[70] w-64 min-h-24 rounded-md border border-red-200 bg-red-50 p-4 shadow-xl">
+        <p class="text-sm font-semibold text-red-700">Fechas no válidas</p>
+        <p class="mt-1 text-sm leading-5 text-red-600">La fecha fin no puede ser anterior a la fecha inicio.</p>
+      </div>
+    }
 
     <div class="flex items-center gap-3 mb-5 flex-wrap">
       <div class="relative flex-1 max-w-xs">
@@ -95,7 +111,7 @@ import type { Repair, Car, RepairStatus } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Vehículo *</label>
-                  <select formControlName="carId" class="form-select">
+                  <select formControlName="carId" class="form-select" [class.form-field-error]="isInvalid('carId')">
                     <option [ngValue]="null" disabled>Seleccionar vehículo</option>
                     @for (c of carOptions(); track c.id) {
                       <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
@@ -104,7 +120,9 @@ import type { Repair, Car, RepairStatus } from '../../core/models';
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Descripción *</label>
-                  <textarea formControlName="description" class="form-textarea" rows="2" placeholder="Describe la reparación..."></textarea>
+                  <textarea formControlName="description" class="form-textarea" rows="2" maxlength="500"
+                            [class.form-field-error]="isInvalid('description')"
+                            placeholder="Describe la reparación..."></textarea>
                 </div>
                 <div>
                   <label class="form-label">Estado</label>
@@ -116,21 +134,24 @@ import type { Repair, Car, RepairStatus } from '../../core/models';
                   </select>
                 </div>
                 <div>
-                  <label class="form-label">Coste (€)</label>
-                  <input formControlName="cost" type="number" step="0.01" class="form-input" placeholder="0.00">
+                  <label class="form-label">Coste (€) *</label>
+                  <input formControlName="cost" type="number" min="1.01" step="0.01"
+                         class="form-input" [class.form-field-error]="isInvalid('cost')" placeholder="0.00">
                 </div>
                 <div>
                   <label class="form-label">Fecha inicio</label>
-                  <input formControlName="startDate" type="date" class="form-input">
+                  <input formControlName="startDate" type="date" class="form-input"
+                         [class.form-field-error]="dateRangeInvalid()">
                 </div>
                 <div>
                   <label class="form-label">Fecha fin</label>
-                  <input formControlName="endDate" type="date" class="form-input">
+                  <input formControlName="endDate" type="date" class="form-input"
+                         [class.form-field-error]="dateRangeInvalid()">
                 </div>
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+                <app-button type="button" [loading]="saving()" (clicked)="save()">Guardar</app-button>
               </div>
             </form>
           </div>
@@ -183,14 +204,17 @@ export class RepairListComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  submitted = signal(false);
 
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
-    description: ['', Validators.required],
+    description: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(500)]],
     status: ['PENDING' as RepairStatus],
-    cost: [null as number | null],
+    cost: [null as number | null, [Validators.required, Validators.min(1.01)]],
     startDate: [''],
     endDate: [''],
+  }, {
+    validators: repairDateRangeValidator,
   });
 
   filtered = computed(() => {
@@ -217,12 +241,14 @@ export class RepairListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
+    this.submitted.set(false);
     this.form.reset({ status: 'PENDING' });
     this.showModal.set(true);
   }
 
   openEdit(r: Repair) {
     this.editingId.set(r.id);
+    this.submitted.set(false);
     this.form.patchValue({
       carId: r.carId,
       description: r.description,
@@ -234,12 +260,36 @@ export class RepairListComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
+  dateRangeInvalid() {
+    return this.form.hasError('dateRange')
+      && !!this.form.get('startDate')?.value
+      && !!this.form.get('endDate')?.value;
+  }
 
   save() {
-    if (this.form.invalid) return;
+    this.submitted.set(true);
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
+      return;
+    }
     this.saving.set(true);
-    const v = this.form.value as Partial<Repair>;
+    const raw = this.form.value;
+    const v: Partial<Repair> = {
+      carId: raw.carId!,
+      description: raw.description!.trim(),
+      status: raw.status as RepairStatus,
+      cost: raw.cost!,
+      startDate: raw.startDate || undefined,
+      endDate: raw.endDate || undefined,
+    };
     const op = this.editingId()
       ? this.repairsService.update(this.editingId()!, v)
       : this.repairsService.create(v);
