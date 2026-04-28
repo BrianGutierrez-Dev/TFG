@@ -76,6 +76,33 @@ main > * { animation: fadeUp 0.18s ease-out; }
 
   .form-textarea { resize: vertical; min-height: 72px; }
 
+  .form-input.ng-valid.ng-dirty,
+  .form-input.ng-valid.ng-touched,
+  .form-select.ng-valid.ng-dirty,
+  .form-select.ng-valid.ng-touched,
+  .form-textarea.ng-valid.ng-dirty,
+  .form-textarea.ng-valid.ng-touched {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08);
+  }
+
+  .form-input.ng-invalid.ng-dirty,
+  .form-input.ng-invalid.ng-touched,
+  .form-select.ng-invalid.ng-dirty,
+  .form-select.ng-invalid.ng-touched,
+  .form-textarea.ng-invalid.ng-dirty,
+  .form-textarea.ng-invalid.ng-touched {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+  }
+
+  .form-input.form-field-error,
+  .form-select.form-field-error,
+  .form-textarea.form-field-error {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+  }
+
   .form-select {
     width: 100%;
     border: 1px solid #e5e7eb;
