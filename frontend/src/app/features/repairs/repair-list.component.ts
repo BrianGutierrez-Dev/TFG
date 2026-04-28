@@ -109,14 +109,42 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
             </div>
             <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
               <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="form-label">Vehículo *</label>
-                  <select formControlName="carId" class="form-select" [class.form-field-error]="isInvalid('carId')">
-                    <option [ngValue]="null" disabled>Seleccionar vehículo</option>
-                    @for (c of carOptions(); track c.id) {
-                      <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                  @if (selectedCar()) {
+                    <div class="form-input flex items-center justify-between cursor-default">
+                      <span class="text-gray-900 font-mono">{{ selectedCar()!.licensePlate }}
+                        <span class="ml-1 font-sans font-normal text-xs text-gray-400">{{ selectedCar()!.brand }} {{ selectedCar()!.model }}</span>
+                      </span>
+                      <button type="button" (click)="clearCar()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('carId')"
+                           placeholder="Buscar por matrícula o modelo..."
+                           [value]="carQuery()"
+                           (input)="onCarSearch($any($event.target).value)"
+                           (focus)="showCarSuggestions.set(true)"
+                           (blur)="onCarBlur()"
+                           autocomplete="off">
+                    @if (showCarSuggestions() && carQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                        @if (carSuggestions().length > 0) {
+                          @for (c of carSuggestions(); track c.id) {
+                            <li>
+                              <button type="button" (mousedown)="selectCar(c)"
+                                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm">
+                                <span class="font-mono font-medium text-gray-900">{{ c.licensePlate }}</span>
+                                <span class="ml-2 text-xs text-gray-400">{{ c.brand }} {{ c.model }}</span>
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Descripción *</label>
@@ -210,6 +238,17 @@ export class RepairListComponent implements OnInit {
   deleteError = signal<string | null>(null);
   submitted = signal(false);
 
+  carQuery = signal('');
+  showCarSuggestions = signal(false);
+  selectedCar = signal<Car | null>(null);
+  carSuggestions = computed(() => {
+    const q = this.carQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.carOptions().filter(c =>
+      c.licensePlate.toLowerCase().includes(q) || c.model.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
+
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
     description: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(500)]],
@@ -246,6 +285,9 @@ export class RepairListComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.submitted.set(false);
+    this.selectedCar.set(null);
+    this.carQuery.set('');
+    this.showCarSuggestions.set(false);
     this.form.reset({ status: 'PENDING' });
     this.showModal.set(true);
   }
@@ -253,6 +295,9 @@ export class RepairListComponent implements OnInit {
   openEdit(r: Repair) {
     this.editingId.set(r.id);
     this.submitted.set(false);
+    this.carQuery.set('');
+    this.showCarSuggestions.set(false);
+    this.selectedCar.set(this.carOptions().find(c => c.id === r.carId) ?? null);
     this.form.patchValue({
       carId: r.carId,
       description: r.description,
@@ -264,7 +309,36 @@ export class RepairListComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.submitted.set(false);
+    this.selectedCar.set(null);
+    this.carQuery.set('');
+  }
+
+  onCarSearch(value: string) {
+    this.carQuery.set(value);
+    this.form.controls.carId.setValue(null);
+    this.selectedCar.set(null);
+    this.showCarSuggestions.set(true);
+  }
+
+  selectCar(c: Car) {
+    this.selectedCar.set(c);
+    this.form.controls.carId.setValue(c.id);
+    this.showCarSuggestions.set(false);
+    this.carQuery.set('');
+  }
+
+  clearCar() {
+    this.selectedCar.set(null);
+    this.form.controls.carId.setValue(null);
+    this.carQuery.set('');
+  }
+
+  onCarBlur() {
+    setTimeout(() => this.showCarSuggestions.set(false), 150);
+  }
 
   isInvalid(controlName: keyof typeof this.form.controls) {
     const control = this.form.controls[controlName];
