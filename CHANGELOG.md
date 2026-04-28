@@ -4,6 +4,8 @@
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Búsqueda por DNI en el listado de incidencias                          | C -> [1.2.21]             |
+| 28/04/2026  | Búsqueda por DNI en el listado de contratos                            | C -> [1.2.20]             |
 | 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en reparaciones            | C -> [1.2.19]             |
 | 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en mantenimientos          | C -> [1.2.18]             |
 | 28/04/2026  | Búsqueda de cliente por nombre o DNI en contratos, incidencias y coches | C -> [1.2.17]             |
