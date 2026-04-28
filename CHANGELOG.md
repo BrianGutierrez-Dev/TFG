@@ -4,6 +4,8 @@
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en reparaciones            | C -> [1.2.19]             |
+| 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en mantenimientos          | C -> [1.2.18]             |
 | 28/04/2026  | Búsqueda de cliente por nombre o DNI en contratos, incidencias y coches | C -> [1.2.17]             |
 | 28/04/2026  | Dashboard con próximas devoluciones en los siguientes 3 días           | C -> [1.2.16]             |
 | 28/04/2026  | Ficha de cliente con contratos, incidencias y vehículos asignados      | C -> [1.2.15]             |
