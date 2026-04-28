@@ -1,7 +1,5 @@
 # Registro de Cambios
 
-Nombre: Carlos
-
 ---
 
 | Fecha       | Cambio                                                                 | Commit                    |
