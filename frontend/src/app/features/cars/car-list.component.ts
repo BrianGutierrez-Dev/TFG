@@ -111,14 +111,41 @@ import type { Car as CarModel, Client } from '../../core/models';
                   <label class="form-label">Color</label>
                   <input formControlName="color" class="form-input" maxlength="30" placeholder="Blanco">
                 </div>
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="form-label">Propietario</label>
-                  <select formControlName="clientId" class="form-select">
-                    <option [ngValue]="null">Sin propietario</option>
-                    @for (client of clients(); track client.id) {
-                      <option [ngValue]="client.id">{{ client.name }} — {{ client.dni }}</option>
+                  @if (selectedClient()) {
+                    <div class="form-input flex items-center justify-between cursor-default">
+                      <span class="text-gray-900">{{ selectedClient()!.name }}
+                        <span class="ml-1 font-mono text-xs text-gray-400">{{ selectedClient()!.dni }}</span>
+                      </span>
+                      <button type="button" (click)="clearClient()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" placeholder="Buscar por nombre o DNI (opcional)..."
+                           [value]="clientQuery()"
+                           (input)="onClientSearch($any($event.target).value)"
+                           (focus)="showClientSuggestions.set(true)"
+                           (blur)="onClientBlur()"
+                           autocomplete="off">
+                    @if (showClientSuggestions() && clientQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                        @if (clientSuggestions().length > 0) {
+                          @for (c of clientSuggestions(); track c.id) {
+                            <li>
+                              <button type="button" (mousedown)="selectClient(c)"
+                                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm">
+                                <span class="font-medium text-gray-900">{{ c.name }}</span>
+                                <span class="ml-2 font-mono text-xs text-gray-400">{{ c.dni }}</span>
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                 </div>
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
@@ -174,6 +201,17 @@ export class CarListComponent implements OnInit {
   deleteError = signal<string | null>(null);
   submitted = signal(false);
 
+  clientQuery = signal('');
+  showClientSuggestions = signal(false);
+  selectedClient = signal<Client | null>(null);
+  clientSuggestions = computed(() => {
+    const q = this.clientQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.clients().filter(c =>
+      c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
+
   form = this.fb.group({
     licensePlate: ['', [Validators.required, Validators.pattern(/^\d{4}\s?[A-Za-z]{3}$/)]],
     brand: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^.*\S.*$/)]],
@@ -205,6 +243,9 @@ export class CarListComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.submitted.set(false);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+    this.showClientSuggestions.set(false);
     this.form.reset({ year: new Date().getFullYear(), clientId: null });
     this.showModal.set(true);
   }
@@ -212,11 +253,44 @@ export class CarListComponent implements OnInit {
   openEdit(c: CarModel) {
     this.editingId.set(c.id);
     this.submitted.set(false);
+    this.clientQuery.set('');
+    this.showClientSuggestions.set(false);
+    const owner = c.clientId ? (this.clients().find(cl => cl.id === c.clientId) ?? null) : null;
+    this.selectedClient.set(owner);
     this.form.patchValue({ ...c, clientId: c.clientId ?? null });
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.submitted.set(false);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+  }
+
+  onClientSearch(value: string) {
+    this.clientQuery.set(value);
+    this.form.controls.clientId.setValue(null);
+    this.selectedClient.set(null);
+    this.showClientSuggestions.set(true);
+  }
+
+  selectClient(c: Client) {
+    this.selectedClient.set(c);
+    this.form.controls.clientId.setValue(c.id);
+    this.showClientSuggestions.set(false);
+    this.clientQuery.set('');
+  }
+
+  clearClient() {
+    this.selectedClient.set(null);
+    this.form.controls.clientId.setValue(null);
+    this.clientQuery.set('');
+  }
+
+  onClientBlur() {
+    setTimeout(() => this.showClientSuggestions.set(false), 150);
+  }
 
   isInvalid(controlName: keyof typeof this.form.controls) {
     const control = this.form.controls[controlName];
