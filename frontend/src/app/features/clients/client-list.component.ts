@@ -136,7 +136,10 @@ import type { Client } from '../../core/models';
                   </div>
                 }
               </div>
-              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              @if (saveError()) {
+                <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-4">{{ saveError() }}</p>
+              }
+              <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
                 <app-button type="submit" [loading]="saving()">Guardar</app-button>
               </div>
@@ -213,6 +216,7 @@ export class ClientListComponent implements OnInit {
   saving = signal(false);
   deleting = signal(false);
   blacklisting = signal(false);
+  saveError = signal<string | null>(null);
   clients = signal<Client[]>([]);
   search = signal('');
   filter = signal<'all' | 'blacklisted'>('all');
@@ -224,11 +228,11 @@ export class ClientListComponent implements OnInit {
   blacklistReasonError = signal(false);
 
   form = this.fb.group({
-    name: ['', Validators.required],
-    dni: ['', Validators.required],
+    name: ['', [Validators.required, Validators.minLength(3)]],
+    dni: ['', [Validators.required, Validators.pattern(/^\d{8}[A-Za-z]$/)]],
     email: ['', [Validators.required, Validators.email]],
-    phone: ['', Validators.required],
-    address: [''],
+    phone: ['', [Validators.required, Validators.pattern(/^\d{9}$/)]],
+    address: ['', Validators.minLength(5)],
     notes: [''],
     isBlacklisted: [false],
     blacklistReason: [''],
@@ -264,7 +268,7 @@ export class ClientListComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() { this.showModal.set(false); this.saveError.set(null); }
 
   save() {
     if (this.form.get('isBlacklisted')?.value && !this.form.get('blacklistReason')?.value?.trim()) {
@@ -285,12 +289,13 @@ export class ClientListComponent implements OnInit {
     };
     if (v.isBlacklisted) data.blacklistReason = v.blacklistReason!;
 
+    this.saveError.set(null);
     const op = this.editingId()
       ? this.clientsService.update(this.editingId()!, data)
       : this.clientsService.create(data);
     op.subscribe({
       next: () => { this.saving.set(false); this.closeModal(); this.load(); },
-      error: () => this.saving.set(false),
+      error: (err) => { this.saving.set(false); this.saveError.set(err?.error?.message ?? 'Error al guardar'); },
     });
   }
 
