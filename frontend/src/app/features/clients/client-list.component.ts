@@ -164,7 +164,8 @@ import type { Client } from '../../core/models';
               </p>
               <div>
                 <label class="form-label">Razón *</label>
-                <textarea [(ngModel)]="blacklistReasonText" class="form-textarea" rows="3"
+                <textarea [ngModel]="blacklistReasonText()" (ngModelChange)="blacklistReasonText.set($event)"
+                          class="form-textarea" rows="3"
                           placeholder="Describe el motivo del bloqueo..."></textarea>
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
@@ -301,21 +302,21 @@ export class ClientListComponent implements OnInit {
         ),
       });
     } else {
-      this.blacklistReasonText = '';
+      this.blacklistReasonText.set('');
       this.blacklistTarget.set(c);
     }
   }
 
   confirmAddToBlacklist() {
     const c = this.blacklistTarget();
-    if (!c || !this.blacklistReasonText.trim()) return;
+    if (!c || !this.blacklistReasonText().trim()) return;
     this.blacklisting.set(true);
-    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } as any).subscribe({
+    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText().trim() } as any).subscribe({
       next: (updated) => {
         this.blacklisting.set(false);
         this.blacklistTarget.set(null);
         this.clients.update(list =>
-          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } : x)
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: this.blacklistReasonText().trim() } : x)
         );
       },
       error: () => this.blacklisting.set(false),
