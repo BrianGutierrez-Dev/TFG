@@ -43,6 +43,16 @@ export async function create(data: {
   const client = await prisma.client.findUnique({ where: { id: data.clientId } });
   if (!client) throw new AppError(404, 'Cliente no encontrado');
 
+  if (data.contractId) {
+    const contract = await prisma.rentalContract.findUnique({
+      where: { id: data.contractId },
+      select: { clientId: true },
+    });
+    if (!contract) throw new AppError(404, 'Contrato no encontrado');
+    if (contract.clientId !== data.clientId)
+      throw new AppError(400, 'El contrato seleccionado no pertenece al cliente');
+  }
+
   const incident = await prisma.incident.create({ data, include: incidentInclude });
 
   // Re-evaluar lista negra
