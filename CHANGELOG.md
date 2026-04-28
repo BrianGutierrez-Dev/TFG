@@ -6,6 +6,8 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Ficha de cliente con contratos, incidencias y vehículos asignados      | C -> [1.2.15]             |
+| 28/04/2026  | Dashboard muestra devoluciones pendientes para el día de hoy           | C -> [1.2.14]             |
 | 28/04/2026  | Validaciones en formulario de clientes y mensajes de error al eliminar | C -> [1.2.13]             |
 | 28/04/2026  | Validaciones integridad referencial y endpoint DELETE contratos         | C -> [1.2.12]             |
 | 28/04/2026  | Validaciones en creación de reparaciones                               | C -> [1.2.11]             |
