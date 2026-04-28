@@ -4,6 +4,8 @@
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Búsqueda de cliente por nombre o DNI en contratos, incidencias y coches | C -> [1.2.17]             |
+| 28/04/2026  | Dashboard con próximas devoluciones en los siguientes 3 días           | C -> [1.2.16]             |
 | 28/04/2026  | Ficha de cliente con contratos, incidencias y vehículos asignados      | C -> [1.2.15]             |
 | 28/04/2026  | Dashboard muestra devoluciones pendientes para el día de hoy           | C -> [1.2.14]             |
 | 28/04/2026  | Validaciones en formulario de clientes y mensajes de error al eliminar | C -> [1.2.13]             |
@@ -14,7 +16,7 @@
 | 28/04/2026  | Validaciones en creación de mantenimientos                             | C -> [1.2.8]              |
 | 28/04/2026  | Marcado explícito de campos obligatorios en vehículos                  | C -> [1.2.7]              |
 | 28/04/2026  | Validaciones en formulario de vehículos                                | C -> [1.2.6]              |
-| 28/04/2026  | Validaciones en creación de incidencias                                | C -> [1.2.5]              |
+| 28/04/2026  | Validaciones en creación de incidencseias                                | C -> [1.2.5]              |
 | 28/04/2026  | Bloqueo de contratos con precio total a cero                           | C -> [1.2.4]              |
 | 28/04/2026  | Limpieza de validaciones en formulario de clientes                     | C -> [1.2.3]              |
 | 28/04/2026  | Validación de fechas en creación de contratos                          | C -> [1.2.2]              |

@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
-import { LucideAngularModule, Users, Car, FileText, AlertTriangle, ShieldAlert, Wrench, Clock, OctagonAlert } from 'lucide-angular';
+import { LucideAngularModule, Users, Car, FileText, AlertTriangle, ShieldAlert, Wrench, Clock, OctagonAlert, CalendarClock } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { CarsService } from '../../core/services/cars.service';
 import { RentalsService } from '../../core/services/rentals.service';
@@ -67,7 +67,7 @@ import type { RentalContract } from '../../core/models';
         </a>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
         <!-- Pendientes de devolver -->
         <div class="card p-5">
           <div class="flex items-center gap-2 mb-4">
@@ -97,6 +97,46 @@ import type { RentalContract } from '../../core/models';
                       </td>
                       <td class="py-2 pr-3 text-gray-600">{{ r.client.name }}</td>
                       <td class="py-2 pr-3 text-gray-600">{{ r.endDate | date:'dd/MM/yyyy' }}</td>
+                      <td class="py-2 text-right">
+                        <a [routerLink]="['/rentals', r.id]" class="text-xs text-blue-500 hover:underline">Ver</a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <!-- Próximas devoluciones -->
+        <div class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <lucide-icon [img]="CalendarClock" [size]="16" class="text-amber-500"></lucide-icon>
+            <h2 class="text-sm font-semibold text-gray-700">Próximas devoluciones</h2>
+            <span class="ml-auto text-xs font-medium bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">{{ upcomingRentals().length }}</span>
+          </div>
+          @if (upcomingRentals().length === 0) {
+            <p class="text-sm text-gray-400 text-center py-6">No hay devoluciones en los próximos 3 días</p>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs text-gray-400 border-b border-gray-100">
+                    <th class="text-left pb-2 font-medium">Vehículo</th>
+                    <th class="text-left pb-2 font-medium">Cliente</th>
+                    <th class="text-left pb-2 font-medium">Fecha fin</th>
+                    <th class="pb-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of upcomingRentals(); track r.id) {
+                    <tr class="border-b border-gray-50 last:border-0">
+                      <td class="py-2 pr-3 font-medium text-gray-900">
+                        {{ r.car.brand }} {{ r.car.model }}
+                        <span class="block text-xs text-gray-400 font-normal">{{ r.car.licensePlate }}</span>
+                      </td>
+                      <td class="py-2 pr-3 text-gray-600">{{ r.client.name }}</td>
+                      <td class="py-2 pr-3 text-amber-600 font-medium">{{ r.endDate | date:'dd/MM/yyyy' }}</td>
                       <td class="py-2 text-right">
                         <a [routerLink]="['/rentals', r.id]" class="text-xs text-blue-500 hover:underline">Ver</a>
                       </td>
@@ -166,10 +206,12 @@ export class DashboardComponent implements OnInit {
   readonly Wrench = Wrench;
   readonly Clock = Clock;
   readonly OctagonAlert = OctagonAlert;
+  readonly CalendarClock = CalendarClock;
 
   loading = signal(true);
   stats = signal({ clients: 0, blacklisted: 0, cars: 0, activeRentals: 0, unresolvedIncidents: 0, pendingRepairs: 0 });
   activeRentals = signal<RentalContract[]>([]);
+  upcomingRentals = signal<RentalContract[]>([]);
   overdueRentals = signal<RentalContract[]>([]);
 
   ngOnInit() {
@@ -191,7 +233,9 @@ export class DashboardComponent implements OnInit {
           pendingRepairs: repairs.length,
         });
         const today = new Date().toISOString().slice(0, 10);
+        const in3Days = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
         this.activeRentals.set(rentals.filter(r => r.endDate.slice(0, 10) === today));
+        this.upcomingRentals.set(rentals.filter(r => r.endDate.slice(0, 10) > today && r.endDate.slice(0, 10) <= in3Days));
         this.overdueRentals.set(overdue);
         this.loading.set(false);
       },
