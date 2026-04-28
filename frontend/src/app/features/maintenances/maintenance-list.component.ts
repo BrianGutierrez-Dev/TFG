@@ -122,8 +122,8 @@ function maintenanceDateRangeValidator(control: AbstractControl): ValidationErro
                             placeholder="Detalles del mantenimiento..."></textarea>
                 </div>
                 <div>
-                  <label class="form-label">Coste (€)</label>
-                  <input formControlName="cost" type="number" min="0.01" step="0.01"
+                  <label class="form-label">Coste (€) *</label>
+                  <input formControlName="cost" type="number" min="1.01" step="0.01"
                          class="form-input" [class.form-field-error]="isInvalid('cost')" placeholder="0.00">
                 </div>
                 <div>
@@ -187,7 +187,7 @@ export class MaintenanceListComponent implements OnInit {
     carId: [null as number | null, Validators.required],
     type: ['', [Validators.required, Validators.maxLength(80), Validators.pattern(/^.*\S.*$/)]],
     description: ['', [Validators.minLength(3), Validators.maxLength(500)]],
-    cost: [null as number | null, Validators.min(0.01)],
+    cost: [null as number | null, [Validators.required, Validators.min(1.01)]],
     date: [new Date().toISOString().split('T')[0], Validators.required],
     nextDueDate: [''],
   }, {
@@ -245,7 +245,7 @@ export class MaintenanceListComponent implements OnInit {
       carId: v.carId!,
       type: v.type!,
       description: v.description?.trim() || undefined,
-      cost: v.cost ?? undefined,
+      cost: v.cost!,
       date: v.date!,
       nextDueDate: v.nextDueDate || undefined,
     } as Partial<Maintenance>).subscribe({

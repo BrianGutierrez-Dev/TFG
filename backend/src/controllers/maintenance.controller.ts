@@ -33,8 +33,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     const trimmedType = normalizeText(type);
     const trimmedDescription = normalizeText(description);
 
-    if (!carId || !trimmedType || !date) {
-      res.status(400).json({ message: 'Faltan campos obligatorios: carId, type, date' });
+    if (!carId || !trimmedType || cost == null || !date) {
+      res.status(400).json({ message: 'Faltan campos obligatorios: carId, type, cost, date' });
       return;
     }
     if (!isPositiveInteger(carId)) {
@@ -49,8 +49,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       res.status(400).json({ message: 'La descripción debe tener entre 3 y 500 caracteres' });
       return;
     }
-    if (cost != null && (isNaN(Number(cost)) || Number(cost) <= 0)) {
-      res.status(400).json({ message: 'El coste debe ser mayor que 0' });
+    if (isNaN(Number(cost)) || Number(cost) <= 1) {
+      res.status(400).json({ message: 'El coste debe ser mayor que 1' });
       return;
     }
     if (!isValidDate(date) || (nextDueDate && !isValidDate(nextDueDate))) {
@@ -66,7 +66,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       carId: Number(carId),
       type: trimmedType,
       description: trimmedDescription || undefined,
-      cost: cost == null ? undefined : Number(cost),
+      cost: Number(cost),
       date,
       nextDueDate: nextDueDate || undefined,
     };
@@ -95,9 +95,9 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       }
       data.description = trimmedDescription || null;
     }
-    if ('cost' in data && data.cost != null) {
-      if (isNaN(Number(data.cost)) || Number(data.cost) <= 0) {
-        res.status(400).json({ message: 'El coste debe ser mayor que 0' });
+    if ('cost' in data) {
+      if (data.cost == null || isNaN(Number(data.cost)) || Number(data.cost) <= 1) {
+        res.status(400).json({ message: 'El coste debe ser mayor que 1' });
         return;
       }
       data.cost = Number(data.cost);
