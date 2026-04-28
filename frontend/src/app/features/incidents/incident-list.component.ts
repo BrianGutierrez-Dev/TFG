@@ -27,7 +27,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
         <input [value]="search()" (input)="search.set($any($event.target).value)"
-               class="form-input pl-9" placeholder="Buscar por cliente...">
+               class="form-input pl-9" placeholder="Buscar por cliente o DNI...">
       </div>
       <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('all')">Todas</button>
       <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('unresolved')">Pendientes</button>
@@ -251,7 +251,7 @@ export class IncidentListComponent implements OnInit {
     const q = this.search().toLowerCase();
     const r = this.resolvedFilter();
     return this.incidents().filter(i => {
-      const matchSearch = !q || i.client.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
+      const matchSearch = !q || i.client.name.toLowerCase().includes(q) || i.client.dni.toLowerCase().includes(q) || i.description.toLowerCase().includes(q);
       const matchResolved = r === 'all' || (r === 'resolved' && i.resolved) || (r === 'unresolved' && !i.resolved);
       return matchSearch && matchResolved;
     });
