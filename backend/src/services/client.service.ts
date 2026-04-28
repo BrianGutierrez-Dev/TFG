@@ -77,6 +77,32 @@ export async function update(
 
 export async function remove(id: number) {
   await getById(id);
+  const related = await prisma.client.findUnique({
+    where: { id },
+    select: {
+      _count: {
+        select: {
+          cars: true,
+          contracts: true,
+          incidents: true,
+        },
+      },
+    },
+  });
+
+  const hasHistory = !!related && (
+    related._count.cars > 0
+    || related._count.contracts > 0
+    || related._count.incidents > 0
+  );
+
+  if (hasHistory) {
+    throw new AppError(
+      409,
+      'No se puede eliminar el cliente porque tiene vehículos, contratos o incidencias asociados'
+    );
+  }
+
   await prisma.client.delete({ where: { id } });
 }
 

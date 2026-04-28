@@ -55,6 +55,13 @@ export async function updateStatus(req: AuthRequest, res: Response, next: NextFu
   } catch (err) { next(err); }
 }
 
+export async function remove(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    await rentalService.remove(Number(req.params.id));
+    res.status(204).send();
+  } catch (err) { next(err); }
+}
+
 export async function markOverdue(_req: AuthRequest, res: Response, next: NextFunction) {
   try {
     res.json(await rentalService.markOverdue());

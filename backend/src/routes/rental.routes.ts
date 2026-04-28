@@ -11,6 +11,7 @@ router.get('/:id', rentalController.getById);
 router.post('/', rentalController.create);
 router.put('/:id', rentalController.update);
 router.patch('/:id/status', rentalController.updateStatus);
+router.delete('/:id', rentalController.remove);
 router.post('/mark-overdue', requireAdmin, rentalController.markOverdue);
 
 export default router;

@@ -89,6 +89,26 @@ export async function update(
   });
 }
 
+export async function remove(id: number) {
+  await getById(id);
+  const related = await prisma.rentalContract.findUnique({
+    where: { id },
+    select: {
+      carReturn: { select: { id: true } },
+      _count: { select: { incidents: true } },
+    },
+  });
+
+  if (related?.carReturn || (related?._count.incidents ?? 0) > 0) {
+    throw new AppError(
+      409,
+      'No se puede eliminar el contrato porque tiene devolución o incidencias asociadas'
+    );
+  }
+
+  await prisma.rentalContract.delete({ where: { id } });
+}
+
 export async function markOverdue() {
   const now = new Date();
   const result = await prisma.rentalContract.updateMany({

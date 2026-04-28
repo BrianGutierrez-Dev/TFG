@@ -70,5 +70,31 @@ export async function update(
 
 export async function remove(id: number) {
   await getById(id);
+  const related = await prisma.car.findUnique({
+    where: { id },
+    select: {
+      _count: {
+        select: {
+          contracts: true,
+          maintenances: true,
+          repairs: true,
+        },
+      },
+    },
+  });
+
+  const hasHistory = !!related && (
+    related._count.contracts > 0
+    || related._count.maintenances > 0
+    || related._count.repairs > 0
+  );
+
+  if (hasHistory) {
+    throw new AppError(
+      409,
+      'No se puede eliminar el vehículo porque tiene contratos, mantenimientos o reparaciones asociados'
+    );
+  }
+
   await prisma.car.delete({ where: { id } });
 }
