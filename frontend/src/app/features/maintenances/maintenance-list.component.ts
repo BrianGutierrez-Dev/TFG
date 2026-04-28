@@ -78,59 +78,63 @@ import type { Maintenance, Car } from '../../core/models';
 
     @if (showModal()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-900">Nuevo mantenimiento</h2>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h2 class="text-base font-semibold text-gray-900">Nuevo mantenimiento</h2>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="form-label">Vehículo *</label>
+                  <select formControlName="carId" class="form-select">
+                    <option [ngValue]="null" disabled>Seleccionar vehículo</option>
+                    @for (c of carOptions(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Tipo *</label>
+                  <input formControlName="type" class="form-input" placeholder="Aceite, Neumáticos, ITV...">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Descripción</label>
+                  <textarea formControlName="description" class="form-textarea" rows="2" placeholder="Detalles del mantenimiento..."></textarea>
+                </div>
+                <div>
+                  <label class="form-label">Coste (€)</label>
+                  <input formControlName="cost" type="number" step="0.01" class="form-input" placeholder="0.00">
+                </div>
+                <div>
+                  <label class="form-label">Fecha *</label>
+                  <input formControlName="date" type="date" class="form-input">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Próxima revisión</label>
+                  <input formControlName="nextDueDate" type="date" class="form-input">
+                </div>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
+                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+              </div>
+            </form>
           </div>
-          <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
-                <label class="form-label">Vehículo *</label>
-                <select formControlName="carId" class="form-select">
-                  <option [ngValue]="null" disabled>Seleccionar vehículo</option>
-                  @for (c of carOptions(); track c.id) {
-                    <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
-                  }
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Tipo *</label>
-                <input formControlName="type" class="form-input" placeholder="Aceite, Neumáticos, ITV...">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Descripción</label>
-                <textarea formControlName="description" class="form-textarea" rows="2" placeholder="Detalles del mantenimiento..."></textarea>
-              </div>
-              <div>
-                <label class="form-label">Coste (€)</label>
-                <input formControlName="cost" type="number" step="0.01" class="form-input" placeholder="0.00">
-              </div>
-              <div>
-                <label class="form-label">Fecha *</label>
-                <input formControlName="date" type="date" class="form-input">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Próxima revisión</label>
-                <input formControlName="nextDueDate" type="date" class="form-input">
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-              <app-button type="submit" [loading]="saving()">Guardar</app-button>
-            </div>
-          </form>
         </div>
       </div>
     }
 
     @if (deleteId()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar registro?</h2>
-          <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
-          <div class="flex justify-end gap-3">
-            <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-            <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar registro?</h2>
+            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+            </div>
           </div>
         </div>
       </div>

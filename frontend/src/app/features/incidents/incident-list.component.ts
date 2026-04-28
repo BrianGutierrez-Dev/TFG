@@ -97,73 +97,77 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
 
     @if (showModal()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-900">Nueva incidencia</h2>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h2 class="text-base font-semibold text-gray-900">Nueva incidencia</h2>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="form-label">Cliente *</label>
+                  <select formControlName="clientId" class="form-select">
+                    <option [ngValue]="null" disabled>Seleccionar cliente</option>
+                    @for (c of clientOptions(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Contrato (opcional)</label>
+                  <select formControlName="contractId" class="form-select">
+                    <option [ngValue]="null">Sin contrato</option>
+                    @for (r of rentalOptions(); track r.id) {
+                      <option [ngValue]="r.id">#{{ r.id }} — {{ r.car.licensePlate }} ({{ r.car.brand }} {{ r.car.model }})</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Tipo *</label>
+                  <select formControlName="type" class="form-select">
+                    <option value="PAYMENT">Pago</option>
+                    <option value="DAMAGE">Daños</option>
+                    <option value="NOT_RETURNED">No devuelto</option>
+                    <option value="LATE_RETURN">Devolución tardía</option>
+                    <option value="THEFT">Robo</option>
+                    <option value="ACCIDENT">Accidente</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Gravedad *</label>
+                  <select formControlName="severity" class="form-select">
+                    <option value="LOW">Baja</option>
+                    <option value="MEDIUM">Media</option>
+                    <option value="HIGH">Alta</option>
+                    <option value="CRITICAL">Crítica</option>
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Descripción *</label>
+                  <textarea formControlName="description" class="form-textarea" rows="3" placeholder="Describe la incidencia..."></textarea>
+                </div>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
+                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+              </div>
+            </form>
           </div>
-          <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
-                <label class="form-label">Cliente *</label>
-                <select formControlName="clientId" class="form-select">
-                  <option [ngValue]="null" disabled>Seleccionar cliente</option>
-                  @for (c of clientOptions(); track c.id) {
-                    <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
-                  }
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Contrato (opcional)</label>
-                <select formControlName="contractId" class="form-select">
-                  <option [ngValue]="null">Sin contrato</option>
-                  @for (r of rentalOptions(); track r.id) {
-                    <option [ngValue]="r.id">#{{ r.id }} — {{ r.car.licensePlate }} ({{ r.car.brand }} {{ r.car.model }})</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Tipo *</label>
-                <select formControlName="type" class="form-select">
-                  <option value="PAYMENT">Pago</option>
-                  <option value="DAMAGE">Daños</option>
-                  <option value="NOT_RETURNED">No devuelto</option>
-                  <option value="LATE_RETURN">Devolución tardía</option>
-                  <option value="THEFT">Robo</option>
-                  <option value="ACCIDENT">Accidente</option>
-                  <option value="OTHER">Otro</option>
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Gravedad *</label>
-                <select formControlName="severity" class="form-select">
-                  <option value="LOW">Baja</option>
-                  <option value="MEDIUM">Media</option>
-                  <option value="HIGH">Alta</option>
-                  <option value="CRITICAL">Crítica</option>
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Descripción *</label>
-                <textarea formControlName="description" class="form-textarea" rows="3" placeholder="Describe la incidencia..."></textarea>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-              <app-button type="submit" [loading]="saving()">Guardar</app-button>
-            </div>
-          </form>
         </div>
       </div>
     }
 
     @if (deleteId()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar incidencia?</h2>
-          <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
-          <div class="flex justify-end gap-3">
-            <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-            <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar incidencia?</h2>
+            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+            </div>
           </div>
         </div>
       </div>

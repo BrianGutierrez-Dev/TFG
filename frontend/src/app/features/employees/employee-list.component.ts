@@ -78,49 +78,53 @@ import type { Employee, Role } from '../../core/models';
 
     @if (showModal()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-md shadow-2xl">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-900">{{ editingId() ? 'Editar empleado' : 'Nuevo empleado' }}</h2>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-md shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h2 class="text-base font-semibold text-gray-900">{{ editingId() ? 'Editar empleado' : 'Nuevo empleado' }}</h2>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
+              <div class="space-y-4">
+                <div>
+                  <label class="form-label">Nombre completo *</label>
+                  <input formControlName="name" class="form-input" placeholder="María García">
+                </div>
+                <div>
+                  <label class="form-label">Email *</label>
+                  <input formControlName="email" type="email" class="form-input" placeholder="maria@empresa.com">
+                </div>
+                <div>
+                  <label class="form-label">Contraseña {{ editingId() ? '(dejar en blanco para no cambiar)' : '*' }}</label>
+                  <input formControlName="password" type="password" class="form-input" placeholder="••••••••">
+                </div>
+                <div>
+                  <label class="form-label">Rol</label>
+                  <select formControlName="role" class="form-select">
+                    <option value="EMPLOYEE">Empleado</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
+                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+              </div>
+            </form>
           </div>
-          <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
-            <div class="space-y-4">
-              <div>
-                <label class="form-label">Nombre completo *</label>
-                <input formControlName="name" class="form-input" placeholder="María García">
-              </div>
-              <div>
-                <label class="form-label">Email *</label>
-                <input formControlName="email" type="email" class="form-input" placeholder="maria@empresa.com">
-              </div>
-              <div>
-                <label class="form-label">Contraseña {{ editingId() ? '(dejar en blanco para no cambiar)' : '*' }}</label>
-                <input formControlName="password" type="password" class="form-input" placeholder="••••••••">
-              </div>
-              <div>
-                <label class="form-label">Rol</label>
-                <select formControlName="role" class="form-select">
-                  <option value="EMPLOYEE">Empleado</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-              <app-button type="submit" [loading]="saving()">Guardar</app-button>
-            </div>
-          </form>
         </div>
       </div>
     }
 
     @if (deleteId()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar empleado?</h2>
-          <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
-          <div class="flex justify-end gap-3">
-            <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-            <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar empleado?</h2>
+            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+            </div>
           </div>
         </div>
       </div>

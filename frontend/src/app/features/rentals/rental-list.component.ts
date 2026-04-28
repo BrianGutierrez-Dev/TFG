@@ -88,52 +88,54 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
 
     @if (showModal()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-900">Nuevo contrato</h2>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h2 class="text-base font-semibold text-gray-900">Nuevo contrato</h2>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="form-label">Cliente *</label>
+                  <select formControlName="clientId" class="form-select">
+                    <option [ngValue]="null" disabled>Seleccionar cliente</option>
+                    @for (c of clientOptions(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Vehículo *</label>
+                  <select formControlName="carId" class="form-select">
+                    <option [ngValue]="null" disabled>Seleccionar vehículo</option>
+                    @for (c of carOptions(); track c.id) {
+                      <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Fecha inicio *</label>
+                  <input formControlName="startDate" type="date" class="form-input">
+                </div>
+                <div>
+                  <label class="form-label">Fecha fin *</label>
+                  <input formControlName="endDate" type="date" class="form-input">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Precio total (€) *</label>
+                  <input formControlName="totalPrice" type="number" step="0.01" class="form-input" placeholder="0.00">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Notas</label>
+                  <textarea formControlName="notes" class="form-textarea" rows="2" placeholder="Observaciones..."></textarea>
+                </div>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
+                <app-button type="submit" [loading]="saving()">Crear contrato</app-button>
+              </div>
+            </form>
           </div>
-          <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
-                <label class="form-label">Cliente *</label>
-                <select formControlName="clientId" class="form-select">
-                  <option [ngValue]="null" disabled>Seleccionar cliente</option>
-                  @for (c of clientOptions(); track c.id) {
-                    <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
-                  }
-                </select>
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Vehículo *</label>
-                <select formControlName="carId" class="form-select">
-                  <option [ngValue]="null" disabled>Seleccionar vehículo</option>
-                  @for (c of carOptions(); track c.id) {
-                    <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Fecha inicio *</label>
-                <input formControlName="startDate" type="date" class="form-input">
-              </div>
-              <div>
-                <label class="form-label">Fecha fin *</label>
-                <input formControlName="endDate" type="date" class="form-input">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Precio total (€) *</label>
-                <input formControlName="totalPrice" type="number" step="0.01" class="form-input" placeholder="0.00">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Notas</label>
-                <textarea formControlName="notes" class="form-textarea" rows="2" placeholder="Observaciones..."></textarea>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-              <app-button type="submit" [loading]="saving()">Crear contrato</app-button>
-            </div>
-          </form>
         </div>
       </div>
     }

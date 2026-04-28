@@ -89,58 +89,62 @@ import type { Client } from '../../core/models';
 
     @if (showModal()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-base font-semibold text-gray-900">{{ editingId() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <h2 class="text-base font-semibold text-gray-900">{{ editingId() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+            </div>
+            <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
+              <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="form-label">Nombre completo *</label>
+                  <input formControlName="name" class="form-input" placeholder="Juan García López">
+                </div>
+                <div>
+                  <label class="form-label">DNI / NIE *</label>
+                  <input formControlName="dni" class="form-input" placeholder="12345678A">
+                </div>
+                <div>
+                  <label class="form-label">Teléfono *</label>
+                  <input formControlName="phone" class="form-input" placeholder="600 000 000">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Email *</label>
+                  <input formControlName="email" type="email" class="form-input" placeholder="juan@email.com">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Dirección</label>
+                  <input formControlName="address" class="form-input" placeholder="Calle Principal 1, Madrid">
+                </div>
+                <div class="col-span-2">
+                  <label class="form-label">Notas</label>
+                  <textarea formControlName="notes" class="form-textarea" rows="2" placeholder="Observaciones..."></textarea>
+                </div>
+                <div class="col-span-2 flex items-center gap-2">
+                  <input formControlName="isBlacklisted" type="checkbox" id="cb-blacklisted" class="w-4 h-4 rounded border-gray-300 accent-gray-900">
+                  <label for="cb-blacklisted" class="text-sm text-gray-700 cursor-pointer">En lista negra</label>
+                </div>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
+                <app-button type="submit" [loading]="saving()">Guardar</app-button>
+              </div>
+            </form>
           </div>
-          <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="col-span-2">
-                <label class="form-label">Nombre completo *</label>
-                <input formControlName="name" class="form-input" placeholder="Juan García López">
-              </div>
-              <div>
-                <label class="form-label">DNI / NIE *</label>
-                <input formControlName="dni" class="form-input" placeholder="12345678A">
-              </div>
-              <div>
-                <label class="form-label">Teléfono *</label>
-                <input formControlName="phone" class="form-input" placeholder="600 000 000">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Email *</label>
-                <input formControlName="email" type="email" class="form-input" placeholder="juan@email.com">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Dirección</label>
-                <input formControlName="address" class="form-input" placeholder="Calle Principal 1, Madrid">
-              </div>
-              <div class="col-span-2">
-                <label class="form-label">Notas</label>
-                <textarea formControlName="notes" class="form-textarea" rows="2" placeholder="Observaciones..."></textarea>
-              </div>
-              <div class="col-span-2 flex items-center gap-2">
-                <input formControlName="isBlacklisted" type="checkbox" id="cb-blacklisted" class="w-4 h-4 rounded border-gray-300 accent-gray-900">
-                <label for="cb-blacklisted" class="text-sm text-gray-700 cursor-pointer">En lista negra</label>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-              <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-              <app-button type="submit" [loading]="saving()">Guardar</app-button>
-            </div>
-          </form>
         </div>
       </div>
     }
 
     @if (deleteId()) {
       <div class="modal-overlay">
-        <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar cliente?</h2>
-          <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
-          <div class="flex justify-end gap-3">
-            <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-            <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar cliente?</h2>
+            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+            </div>
           </div>
         </div>
       </div>
