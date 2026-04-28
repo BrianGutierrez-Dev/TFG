@@ -86,23 +86,23 @@ import type { Car as CarModel, Client } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Matrícula *</label>
-                  <input formControlName="licensePlate" class="form-input font-mono uppercase" placeholder="0000 AAA">
+                  <input formControlName="licensePlate" class="form-input font-mono uppercase" maxlength="8" placeholder="0000 AAA">
                 </div>
                 <div>
                   <label class="form-label">Marca *</label>
-                  <input formControlName="brand" class="form-input" placeholder="Toyota">
+                  <input formControlName="brand" class="form-input" maxlength="50" placeholder="Toyota">
                 </div>
                 <div>
                   <label class="form-label">Modelo *</label>
-                  <input formControlName="model" class="form-input" placeholder="Corolla">
+                  <input formControlName="model" class="form-input" maxlength="50" placeholder="Corolla">
                 </div>
                 <div>
                   <label class="form-label">Año *</label>
-                  <input formControlName="year" type="number" class="form-input" placeholder="2020">
+                  <input formControlName="year" type="number" min="1900" [max]="maxVehicleYear" class="form-input" placeholder="2020">
                 </div>
                 <div>
                   <label class="form-label">Color</label>
-                  <input formControlName="color" class="form-input" placeholder="Blanco">
+                  <input formControlName="color" class="form-input" maxlength="30" placeholder="Blanco">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Propietario</label>
@@ -150,6 +150,7 @@ export class CarListComponent implements OnInit {
   readonly Trash2 = Trash2;
   readonly Car = Car;
   readonly Search = Search;
+  readonly maxVehicleYear = new Date().getFullYear() + 1;
 
   loading = signal(true);
   saving = signal(false);
@@ -162,11 +163,11 @@ export class CarListComponent implements OnInit {
   deleteId = signal<number | null>(null);
 
   form = this.fb.group({
-    licensePlate: ['', Validators.required],
-    brand: ['', Validators.required],
-    model: ['', Validators.required],
-    year: [new Date().getFullYear(), Validators.required],
-    color: [''],
+    licensePlate: ['', [Validators.required, Validators.pattern(/^\d{4}\s?[A-Za-z]{3}$/)]],
+    brand: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^.*\S.*$/)]],
+    model: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^.*\S.*$/)]],
+    year: [new Date().getFullYear(), [Validators.required, Validators.min(1900), Validators.max(this.maxVehicleYear)]],
+    color: ['', Validators.maxLength(30)],
     clientId: [null as number | null],
   });
 
@@ -204,9 +205,25 @@ export class CarListComponent implements OnInit {
   closeModal() { this.showModal.set(false); }
 
   save() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      Object.values(this.form.controls).forEach(control => {
+        if (control.invalid) {
+          control.markAsTouched();
+          control.markAsDirty();
+        }
+      });
+      return;
+    }
     this.saving.set(true);
-    const data = this.form.value as Partial<CarModel>;
+    const v = this.form.value;
+    const data: Omit<Partial<CarModel>, 'clientId'> & { clientId?: number | null } = {
+      licensePlate: v.licensePlate!.replace(/\s/g, '').toUpperCase(),
+      brand: v.brand!.trim(),
+      model: v.model!.trim(),
+      year: v.year!,
+      color: v.color?.trim() || undefined,
+      clientId: v.clientId ?? null,
+    };
     const op = this.editingId()
       ? this.carsService.update(this.editingId()!, data)
       : this.carsService.create(data);
