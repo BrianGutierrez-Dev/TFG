@@ -79,9 +79,11 @@ model Client {
   email         String   @unique
   phone         String
   dni           String   @unique
-  address       String?
-  isBlacklisted Boolean  @default(false)
-  notes         String?
+  address         String?
+  isBlacklisted   Boolean   @default(false)
+  blacklistReason String?
+  blacklistedAt   DateTime?
+  notes           String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Pencil, Trash2, ShieldAlert, ShieldOff, Users, Search } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -11,7 +11,7 @@ import type { Client } from '../../core/models';
 @Component({
   selector: 'app-client-list',
   standalone: true,
-  imports: [ReactiveFormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
+  imports: [ReactiveFormsModule, FormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
   template: `
     <app-page-header title="Clientes" [subtitle]="clients().length + ' registros'">
       <app-button (clicked)="openCreate()">
@@ -27,7 +27,7 @@ import type { Client } from '../../core/models';
                class="form-input pl-9" placeholder="Buscar por nombre, DNI...">
       </div>
       <button [class]="'filter-tab ' + (filter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="filter.set('all')">Todos</button>
-      <button [class]="'filter-tab ' + (filter() === 'blacklisted' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="filter.set('blacklisted')">Lista negra</button>
+      <button [class]="'filter-tab ' + (filter() === 'blacklisted' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="filter.set('blacklisted')">Blacklist</button>
     </div>
 
     @if (loading()) {
@@ -62,7 +62,7 @@ import type { Client } from '../../core/models';
                 </td>
                 <td><span class="text-sm text-gray-600">{{ c._count?.incidents ?? 0 }}</span></td>
                 <td class="space-x-0.5">
-                  <button (click)="toggleBlacklist(c)" title="{{ c.isBlacklisted ? 'Quitar de lista negra' : 'Añadir a lista negra' }}"
+                  <button (click)="toggleBlacklist(c)" [title]="c.isBlacklisted ? 'Quitar de Blacklist' : 'Añadir a Blacklist'"
                           class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
                     <lucide-icon [img]="c.isBlacklisted ? ShieldOff : ShieldAlert" [size]="14"></lucide-icon>
                   </button>
@@ -87,6 +87,7 @@ import type { Client } from '../../core/models';
       </div>
     }
 
+    <!-- Create / Edit modal -->
     @if (showModal()) {
       <div class="modal-overlay">
         <div class="modal-inner">
@@ -122,8 +123,18 @@ import type { Client } from '../../core/models';
                 </div>
                 <div class="col-span-2 flex items-center gap-2">
                   <input formControlName="isBlacklisted" type="checkbox" id="cb-blacklisted" class="w-4 h-4 rounded border-gray-300 accent-gray-900">
-                  <label for="cb-blacklisted" class="text-sm text-gray-700 cursor-pointer">En lista negra</label>
+                  <label for="cb-blacklisted" class="text-sm text-gray-700 cursor-pointer">En Blacklist</label>
                 </div>
+                @if (form.get('isBlacklisted')?.value) {
+                  <div class="col-span-2">
+                    <label class="form-label">Razón de la Blacklist *</label>
+                    <textarea formControlName="blacklistReason" class="form-textarea" rows="2"
+                              placeholder="Motivo por el que se añade a la Blacklist..."></textarea>
+                    @if (form.get('blacklistReason')?.invalid && form.get('blacklistReason')?.touched) {
+                      <p class="text-xs text-red-500 mt-1">La razón es obligatoria al añadir a la Blacklist</p>
+                    }
+                  </div>
+                }
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
@@ -135,6 +146,40 @@ import type { Client } from '../../core/models';
       </div>
     }
 
+    <!-- Blacklist reason modal -->
+    @if (blacklistTarget()) {
+      <div class="modal-overlay">
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-md shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <lucide-icon [img]="ShieldAlert" [size]="15" class="text-red-600"></lucide-icon>
+              </div>
+              <h2 class="text-base font-semibold text-gray-900">Añadir a la Blacklist</h2>
+            </div>
+            <div class="p-6">
+              <p class="text-sm text-gray-500 mb-4">
+                Vas a bloquear a <span class="font-semibold text-gray-900">{{ blacklistTarget()!.name }}</span>.
+                Indica el motivo (obligatorio).
+              </p>
+              <div>
+                <label class="form-label">Razón *</label>
+                <textarea [(ngModel)]="blacklistReasonText" class="form-textarea" rows="3"
+                          placeholder="Describe el motivo del bloqueo..."></textarea>
+              </div>
+              <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <app-button variant="secondary" (clicked)="blacklistTarget.set(null)">Cancelar</app-button>
+                <app-button variant="danger" [loading]="blacklisting()" (clicked)="confirmAddToBlacklist()">
+                  Añadir a Blacklist
+                </app-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Delete modal -->
     @if (deleteId()) {
       <div class="modal-overlay">
         <div class="modal-inner">
@@ -166,12 +211,16 @@ export class ClientListComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
+  blacklisting = signal(false);
   clients = signal<Client[]>([]);
   search = signal('');
   filter = signal<'all' | 'blacklisted'>('all');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  blacklistTarget = signal<Client | null>(null);
+  blacklistReasonText = signal('');
+  blacklistReasonError = signal(false);
 
   form = this.fb.group({
     name: ['', Validators.required],
@@ -181,6 +230,7 @@ export class ClientListComponent implements OnInit {
     address: [''],
     notes: [''],
     isBlacklisted: [false],
+    blacklistReason: [''],
   });
 
   filtered = computed(() => {
@@ -216,15 +266,59 @@ export class ClientListComponent implements OnInit {
   closeModal() { this.showModal.set(false); }
 
   save() {
+    if (this.form.get('isBlacklisted')?.value && !this.form.get('blacklistReason')?.value?.trim()) {
+      this.form.get('blacklistReason')!.markAsTouched();
+      return;
+    }
     if (this.form.invalid) return;
     this.saving.set(true);
-    const data = this.form.value as Partial<Client>;
+    const v = this.form.value;
+    const data: Partial<Client> & { blacklistReason?: string } = {
+      name: v.name!,
+      email: v.email!,
+      phone: v.phone!,
+      dni: v.dni!,
+      address: v.address || undefined,
+      notes: v.notes || undefined,
+      isBlacklisted: v.isBlacklisted ?? false,
+    };
+    if (v.isBlacklisted) data.blacklistReason = v.blacklistReason!;
+
     const op = this.editingId()
       ? this.clientsService.update(this.editingId()!, data)
       : this.clientsService.create(data);
     op.subscribe({
       next: () => { this.saving.set(false); this.closeModal(); this.load(); },
       error: () => this.saving.set(false),
+    });
+  }
+
+  toggleBlacklist(c: Client) {
+    if (c.isBlacklisted) {
+      this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
+        next: () => this.clients.update(list =>
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
+        ),
+      });
+    } else {
+      this.blacklistReasonText = '';
+      this.blacklistTarget.set(c);
+    }
+  }
+
+  confirmAddToBlacklist() {
+    const c = this.blacklistTarget();
+    if (!c || !this.blacklistReasonText.trim()) return;
+    this.blacklisting.set(true);
+    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } as any).subscribe({
+      next: (updated) => {
+        this.blacklisting.set(false);
+        this.blacklistTarget.set(null);
+        this.clients.update(list =>
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } : x)
+        );
+      },
+      error: () => this.blacklisting.set(false),
     });
   }
 
@@ -236,12 +330,6 @@ export class ClientListComponent implements OnInit {
     this.clientsService.delete(this.deleteId()!).subscribe({
       next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
       error: () => this.deleting.set(false),
-    });
-  }
-
-  toggleBlacklist(c: Client) {
-    this.clientsService.update(c.id, { isBlacklisted: !c.isBlacklisted }).subscribe({
-      next: () => this.clients.update(list => list.map(x => x.id === c.id ? { ...x, isBlacklisted: !x.isBlacklisted } : x)),
     });
   }
 }

@@ -23,6 +23,8 @@ export interface Client {
   dni: string;
   address?: string;
   isBlacklisted: boolean;
+  blacklistReason?: string;
+  blacklistedAt?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

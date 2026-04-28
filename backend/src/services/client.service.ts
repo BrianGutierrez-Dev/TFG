@@ -56,10 +56,23 @@ export async function update(
     address: string;
     notes: string;
     isBlacklisted: boolean;
+    blacklistReason: string;
   }>
 ) {
   await getById(id);
-  return prisma.client.update({ where: { id }, data });
+
+  const updateData: Record<string, unknown> = { ...data };
+
+  if (data.isBlacklisted === true) {
+    if (!data.blacklistReason?.trim())
+      throw new AppError(400, 'La razón de la lista negra es obligatoria');
+    updateData.blacklistedAt = new Date();
+  } else if (data.isBlacklisted === false) {
+    updateData.blacklistReason = null;
+    updateData.blacklistedAt = null;
+  }
+
+  return prisma.client.update({ where: { id }, data: updateData });
 }
 
 export async function remove(id: number) {

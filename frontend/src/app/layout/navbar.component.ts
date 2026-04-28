@@ -26,12 +26,12 @@ import { ClientsService } from '../core/services/clients.service';
           Panel
         </a>
 
-        <a routerLink="/blacklist" routerLinkActive="bg-gray-900 text-white"
-           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-gray-900 text-white hover:bg-gray-700">
+        <a routerLink="/blacklist" routerLinkActive="!bg-red-600 !text-white"
+           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors text-red-600 hover:bg-red-600 hover:text-white">
           <lucide-icon [img]="ShieldAlert" [size]="15"></lucide-icon>
-          Lista Negra
+          Blacklist
           @if (blacklistedCount() > 0) {
-            <span class="bg-white text-gray-900 text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+            <span class="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
               {{ blacklistedCount() }}
             </span>
           }
