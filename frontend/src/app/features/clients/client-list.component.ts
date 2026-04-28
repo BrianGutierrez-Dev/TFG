@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { LucideAngularModule, Plus, Pencil, Trash2, ShieldAlert, ShieldOff, Users, Search } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -48,7 +49,7 @@ import type { Client } from '../../core/models';
           </thead>
           <tbody>
             @for (c of filtered(); track c.id) {
-              <tr>
+              <tr class="cursor-pointer" (click)="goToDetail(c.id)">
                 <td class="font-medium text-gray-900">{{ c.name }}</td>
                 <td class="font-mono text-sm text-gray-600">{{ c.dni }}</td>
                 <td class="text-gray-500">{{ c.email }}</td>
@@ -61,7 +62,7 @@ import type { Client } from '../../core/models';
                   }
                 </td>
                 <td><span class="text-sm text-gray-600">{{ c._count?.incidents ?? 0 }}</span></td>
-                <td class="space-x-0.5">
+                <td class="space-x-0.5" (click)="$event.stopPropagation()">
                   <button (click)="toggleBlacklist(c)" [title]="c.isBlacklisted ? 'Quitar de Blacklist' : 'Añadir a Blacklist'"
                           class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
                     <lucide-icon [img]="c.isBlacklisted ? ShieldOff : ShieldAlert" [size]="14"></lucide-icon>
@@ -216,6 +217,7 @@ import type { Client } from '../../core/models';
 })
 export class ClientListComponent implements OnInit {
   private clientsService = inject(ClientsService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
 
   readonly Plus = Plus;
@@ -264,6 +266,8 @@ export class ClientListComponent implements OnInit {
   });
 
   ngOnInit() { this.load(); }
+
+  goToDetail(id: number) { this.router.navigate(['/clients', id]); }
 
   load() {
     this.clientsService.getAll().subscribe({
@@ -355,7 +359,7 @@ export class ClientListComponent implements OnInit {
     if (!c || !this.blacklistReasonText().trim()) return;
     this.blacklisting.set(true);
     this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText().trim() } as any).subscribe({
-      next: (updated) => {
+      next: () => {
         this.blacklisting.set(false);
         this.blacklistTarget.set(null);
         this.clients.update(list =>
