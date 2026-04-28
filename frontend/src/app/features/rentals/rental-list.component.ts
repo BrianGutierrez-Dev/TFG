@@ -139,7 +139,7 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Precio total (€) *</label>
-                  <input formControlName="totalPrice" type="number" step="0.01" class="form-input" placeholder="0.00">
+                  <input formControlName="totalPrice" type="number" min="0.01" step="0.01" class="form-input" placeholder="0.00">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Notas</label>
@@ -191,7 +191,7 @@ export class RentalListComponent implements OnInit {
     carId: [null as number | null, Validators.required],
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
-    totalPrice: [0, [Validators.required, Validators.min(0)]],
+    totalPrice: [null as number | null, [Validators.required, Validators.min(0.01)]],
     notes: [''],
   }, {
     validators: contractDateRangeValidator,
@@ -217,7 +217,7 @@ export class RentalListComponent implements OnInit {
   }
 
   openCreate() {
-    this.form.reset({ totalPrice: 0 });
+    this.form.reset({ totalPrice: null });
     this.clientsService.getAll().subscribe({ next: data => this.clientOptions.set(data) });
     this.carsService.getAll().subscribe({ next: data => this.carOptions.set(data) });
     this.showModal.set(true);

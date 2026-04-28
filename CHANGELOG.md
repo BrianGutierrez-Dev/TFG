@@ -6,6 +6,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 28/04/2026  | Bloqueo de contratos con precio total a cero                           | C -> [1.2.4]              |
 | 28/04/2026  | Limpieza de validaciones en formulario de clientes                     | C -> [1.2.3]              |
 | 28/04/2026  | Validación de fechas en creación de contratos                          | C -> [1.2.2]              |
 | 28/04/2026  | Fix en la señal `blacklistReasonText` del componente `client-list`     | C -> [1.2.1]              |
