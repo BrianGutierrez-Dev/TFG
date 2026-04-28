@@ -118,6 +118,7 @@ function maintenanceDateRangeValidator(control: AbstractControl): ValidationErro
                 <div class="col-span-2">
                   <label class="form-label">Descripción</label>
                   <textarea formControlName="description" class="form-textarea" rows="2" maxlength="500"
+                            [class.form-field-error]="isInvalid('description')"
                             placeholder="Detalles del mantenimiento..."></textarea>
                 </div>
                 <div>
@@ -185,7 +186,7 @@ export class MaintenanceListComponent implements OnInit {
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
     type: ['', [Validators.required, Validators.maxLength(80), Validators.pattern(/^.*\S.*$/)]],
-    description: ['', Validators.maxLength(500)],
+    description: ['', [Validators.minLength(3), Validators.maxLength(500)]],
     cost: [null as number | null, Validators.min(0.01)],
     date: [new Date().toISOString().split('T')[0], Validators.required],
     nextDueDate: [''],
@@ -243,7 +244,7 @@ export class MaintenanceListComponent implements OnInit {
     this.maintenancesService.create({
       carId: v.carId!,
       type: v.type!,
-      description: v.description || undefined,
+      description: v.description?.trim() || undefined,
       cost: v.cost ?? undefined,
       date: v.date!,
       nextDueDate: v.nextDueDate || undefined,

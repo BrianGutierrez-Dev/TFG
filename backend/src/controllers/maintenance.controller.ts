@@ -45,8 +45,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       res.status(400).json({ message: 'El tipo de mantenimiento no puede superar los 80 caracteres' });
       return;
     }
-    if (trimmedDescription.length > 500) {
-      res.status(400).json({ message: 'La descripción no puede superar los 500 caracteres' });
+    if (trimmedDescription && (trimmedDescription.length < 3 || trimmedDescription.length > 500)) {
+      res.status(400).json({ message: 'La descripción debe tener entre 3 y 500 caracteres' });
       return;
     }
     if (cost != null && (isNaN(Number(cost)) || Number(cost) <= 0)) {
@@ -89,8 +89,8 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
     }
     if ('description' in data) {
       const trimmedDescription = normalizeText(data.description);
-      if (trimmedDescription.length > 500) {
-        res.status(400).json({ message: 'La descripción no puede superar los 500 caracteres' });
+      if (trimmedDescription && (trimmedDescription.length < 3 || trimmedDescription.length > 500)) {
+        res.status(400).json({ message: 'La descripción debe tener entre 3 y 500 caracteres' });
         return;
       }
       data.description = trimmedDescription || null;
