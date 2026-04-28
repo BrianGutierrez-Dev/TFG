@@ -99,23 +99,33 @@ import type { Client } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Nombre completo *</label>
-                  <input formControlName="name" class="form-input" placeholder="Juan García López">
+                  <input formControlName="name" class="form-input"
+                         [class.form-field-error]="isInvalid('name')"
+                         placeholder="Juan García López">
                 </div>
                 <div>
                   <label class="form-label">DNI / NIE *</label>
-                  <input formControlName="dni" class="form-input" placeholder="12345678A">
+                  <input formControlName="dni" class="form-input"
+                         [class.form-field-error]="isInvalid('dni')"
+                         placeholder="12345678A">
                 </div>
                 <div>
                   <label class="form-label">Teléfono *</label>
-                  <input formControlName="phone" class="form-input" placeholder="600 000 000">
+                  <input formControlName="phone" class="form-input"
+                         [class.form-field-error]="isInvalid('phone')"
+                         placeholder="600 000 000">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Email *</label>
-                  <input formControlName="email" type="email" class="form-input" placeholder="juan@email.com">
+                  <input formControlName="email" type="email" class="form-input"
+                         [class.form-field-error]="isInvalid('email')"
+                         placeholder="juan@email.com">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Dirección</label>
-                  <input formControlName="address" class="form-input" placeholder="Calle Principal 1, Madrid">
+                  <input formControlName="address" class="form-input"
+                         [class.form-field-error]="isInvalid('address')"
+                         placeholder="Calle Principal 1, Madrid">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Notas</label>
@@ -129,8 +139,9 @@ import type { Client } from '../../core/models';
                   <div class="col-span-2">
                     <label class="form-label">Razón de la Blacklist *</label>
                     <textarea formControlName="blacklistReason" class="form-textarea" rows="2"
+                              [class.form-field-error]="isBlacklistReasonInvalid()"
                               placeholder="Motivo por el que se añade a la Blacklist..."></textarea>
-                    @if (form.get('blacklistReason')?.invalid && form.get('blacklistReason')?.touched) {
+                    @if (isBlacklistReasonInvalid()) {
                       <p class="text-xs text-red-500 mt-1">La razón es obligatoria al añadir a la Blacklist</p>
                     }
                   </div>
@@ -190,8 +201,11 @@ import type { Client } from '../../core/models';
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
             <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar cliente?</h2>
             <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
               <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
             </div>
           </div>
@@ -223,9 +237,11 @@ export class ClientListComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
   blacklistTarget = signal<Client | null>(null);
   blacklistReasonText = signal('');
   blacklistReasonError = signal(false);
+  submitted = signal(false);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -258,24 +274,46 @@ export class ClientListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
+    this.submitted.set(false);
+    this.saveError.set(null);
     this.form.reset({ isBlacklisted: false });
     this.showModal.set(true);
   }
 
   openEdit(c: Client) {
     this.editingId.set(c.id);
+    this.submitted.set(false);
+    this.saveError.set(null);
     this.form.patchValue(c);
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.saveError.set(null); }
+  closeModal() {
+    this.showModal.set(false);
+    this.saveError.set(null);
+    this.submitted.set(false);
+  }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
+  isBlacklistReasonInvalid() {
+    const control = this.form.controls.blacklistReason;
+    return !!this.form.controls.isBlacklisted.value
+      && !control.value?.trim()
+      && (control.touched || control.dirty || this.submitted());
+  }
 
   save() {
-    if (this.form.get('isBlacklisted')?.value && !this.form.get('blacklistReason')?.value?.trim()) {
-      this.form.get('blacklistReason')!.markAsTouched();
+    this.submitted.set(true);
+    this.saveError.set(null);
+    if (this.form.invalid || this.isBlacklistReasonInvalid()) {
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
-    if (this.form.invalid) return;
     this.saving.set(true);
     const v = this.form.value;
     const data: Partial<Client> & { blacklistReason?: string } = {
@@ -328,14 +366,25 @@ export class ClientListComponent implements OnInit {
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.clientsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar el cliente');
+      },
     });
   }
 }

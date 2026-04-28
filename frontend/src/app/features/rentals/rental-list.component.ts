@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { LucideAngularModule, Plus, Eye, FileText, Search } from 'lucide-angular';
+import { LucideAngularModule, Plus, Eye, FileText, Search, Trash2 } from 'lucide-angular';
 import { RentalsService } from '../../core/services/rentals.service';
 import { ClientsService } from '../../core/services/clients.service';
 import { CarsService } from '../../core/services/cars.service';
@@ -87,6 +87,9 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                   <button (click)="goToDetail(r.id); $event.stopPropagation()" class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
                     <lucide-icon [img]="Eye" [size]="14"></lucide-icon>
                   </button>
+                  <button (click)="confirmDelete(r.id); $event.stopPropagation()" class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                    <lucide-icon [img]="Trash2" [size]="14"></lucide-icon>
+                  </button>
                 </td>
               </tr>
             } @empty {
@@ -155,6 +158,24 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
         </div>
       </div>
     }
+
+    @if (deleteId()) {
+      <div class="modal-overlay">
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar contrato?</h2>
+            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class RentalListComponent implements OnInit {
@@ -168,6 +189,7 @@ export class RentalListComponent implements OnInit {
   readonly Eye = Eye;
   readonly FileText = FileText;
   readonly Search = Search;
+  readonly Trash2 = Trash2;
 
   statuses = [
     { value: '' as any, label: 'Todos' },
@@ -179,12 +201,15 @@ export class RentalListComponent implements OnInit {
 
   loading = signal(true);
   saving = signal(false);
+  deleting = signal(false);
   rentals = signal<RentalContract[]>([]);
   clientOptions = signal<Client[]>([]);
   carOptions = signal<Car[]>([]);
   search = signal('');
   statusFilter = signal<ContractStatus | ''>('');
   showModal = signal(false);
+  deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
 
   form = this.fb.group({
     clientId: [null as number | null, Validators.required],
@@ -265,4 +290,26 @@ export class RentalListComponent implements OnInit {
   }
 
   goToDetail(id: number) { this.router.navigate(['/rentals', id]); }
+
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
+
+  doDelete() {
+    if (!this.deleteId()) return;
+    this.deleting.set(true);
+    this.rentalsService.delete(this.deleteId()!).subscribe({
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar el contrato');
+      },
+    });
+  }
 }

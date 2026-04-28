@@ -137,8 +137,11 @@ import type { Car as CarModel, Client } from '../../core/models';
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
             <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar vehículo?</h2>
             <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
               <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
             </div>
           </div>
@@ -168,6 +171,7 @@ export class CarListComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
   submitted = signal(false);
 
   form = this.fb.group({
@@ -245,14 +249,25 @@ export class CarListComponent implements OnInit {
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.carsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar el vehículo');
+      },
     });
   }
 }
