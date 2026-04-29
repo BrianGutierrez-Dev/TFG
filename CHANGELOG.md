@@ -1,5 +1,22 @@
 # Registro de Cambios
 
+Nombre: Brian
+
+---
+
+| Fecha       | Cambio                                                                                                    | Commit                                  |
+|-------------|-----------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| 29/04/2026  | Regeneración del cliente Prisma (`prisma generate`) para los campos `blacklistReason` y `blacklistedAt`   | 945ef3a                                 |
+| 29/04/2026  | Eliminación de `validateBody` en la ruta PUT `/api/clients/:id`                                           | c4ee1a2                                 |
+| 29/04/2026  | Fix del middleware de validación: `whitelist: false`, sin reemplazar `req.body` con la instancia DTO      | c4ee1a2                                 |
+| 29/04/2026  | Fix del binding de `blacklistReasonText`: signal → propiedad plana + variable de template `#reasonInput`  | c4ee1a2                                 |
+| 29/04/2026  | Expansión del buscador en todas las secciones (vehículos, empleados, incidencias, mantenimientos, alquileres, reparaciones) | c4ee1a2                  |
+| 29/04/2026  | Eliminación del filtro Todos/Blacklist en la lista de clientes                                            | c4ee1a2                                 |
+| 29/04/2026  | Instalación de `class-transformer` y `class-validator` tras el merge                                     | 945ef3a                                 |
+| 29/04/2026  | Resolución del conflicto de merge en `client-list` (blacklist binding)                                   | 945ef3a                                 |
+
+---
+
 Nombre: Carlos
 
 ---

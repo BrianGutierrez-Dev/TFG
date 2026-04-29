@@ -63,4 +63,9 @@ export class UpdateClientDto {
   @IsOptional()
   @IsBoolean({ message: 'isBlacklisted debe ser un booleano' })
   isBlacklisted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 500)
+  blacklistReason?: string;
 }

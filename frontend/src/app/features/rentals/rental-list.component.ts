@@ -44,7 +44,7 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
         <input [value]="search()" (input)="search.set($any($event.target).value)"
-               class="form-input pl-9" placeholder="Buscar por cliente, matrícula...">
+               class="form-input pl-9" placeholder="Buscar por cliente, DNI, matrícula, marca...">
       </div>
       @for (s of statuses; track s.value) {
         <button [class]="'filter-tab ' + (statusFilter() === s.value ? 'filter-tab-active' : 'filter-tab-inactive')"
@@ -201,7 +201,7 @@ export class RentalListComponent implements OnInit {
     const q = this.search().toLowerCase();
     const s = this.statusFilter();
     return this.rentals().filter(r => {
-      const matchSearch = !q || r.client.name.toLowerCase().includes(q) || r.car.licensePlate.toLowerCase().includes(q);
+      const matchSearch = !q || r.client.name.toLowerCase().includes(q) || r.client.dni.toLowerCase().includes(q) || r.car.licensePlate.toLowerCase().includes(q) || r.car.brand.toLowerCase().includes(q) || r.car.model.toLowerCase().includes(q);
       const matchStatus = !s || r.status === s;
       return matchSearch && matchStatus;
     });
