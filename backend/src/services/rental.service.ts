@@ -14,6 +14,8 @@ function formatDate(date: Date) {
 }
 
 export async function getAll(filters?: { status?: ContractStatus; clientId?: number; carId?: number }) {
+  await markOverdue();
+
   return prisma.rentalContract.findMany({
     where: filters,
     include: contractInclude,
@@ -22,6 +24,8 @@ export async function getAll(filters?: { status?: ContractStatus; clientId?: num
 }
 
 export async function getById(id: number) {
+  await markOverdue();
+
   const contract = await prisma.rentalContract.findUnique({
     where: { id },
     include: contractInclude,
