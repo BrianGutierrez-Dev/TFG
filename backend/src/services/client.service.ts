@@ -1,43 +1,9 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
-import { pageMeta, PaginationOptions } from '../utils/pagination';
 
-export async function getAll(filters?: { isBlacklisted?: boolean; isActive?: boolean }, pagination?: PaginationOptions) {
-  const where = {
-    isActive: true,
-    ...filters,
-    ...(pagination?.search ? {
-      OR: [
-        { name: { contains: pagination.search, mode: 'insensitive' as const } },
-        { dni: { contains: pagination.search, mode: 'insensitive' as const } },
-        { email: { contains: pagination.search, mode: 'insensitive' as const } },
-        { phone: { contains: pagination.search, mode: 'insensitive' as const } },
-      ],
-    } : {}),
-  };
-
-  if (pagination?.page && pagination.limit) {
-    const [items, total] = await prisma.$transaction([
-      prisma.client.findMany({
-        where,
-        include: {
-          _count: { select: { incidents: true, contracts: true, cars: true } },
-          ...(filters?.isBlacklisted === true
-            ? { incidents: { orderBy: { createdAt: 'desc' as const } } }
-            : {}),
-        },
-        orderBy: { name: 'asc' },
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
-      }),
-      prisma.client.count({ where }),
-    ]);
-
-    return { items, meta: pageMeta(total, pagination.page, pagination.limit) };
-  }
-
+export async function getAll(filters?: { isBlacklisted?: boolean; isActive?: boolean }) {
   return prisma.client.findMany({
-    where,
+    where: { isActive: true, ...filters },
     include: {
       _count: { select: { incidents: true, contracts: true, cars: true } },
       ...(filters?.isBlacklisted === true

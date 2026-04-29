@@ -31,6 +31,10 @@ import type { Client } from '../../core/models';
 
     @if (loading()) {
       <app-spinner></app-spinner>
+    } @else if (loadError()) {
+      <div class="card p-6 text-sm text-red-600 bg-red-50 border-red-200">
+        {{ loadError() }}
+      </div>
     } @else {
       <div class="card overflow-hidden">
         <table class="data-table">
@@ -85,10 +89,10 @@ import type { Client } from '../../core/models';
             }
           </tbody>
         </table>
-        @if (totalItems() > pageSize) {
+        @if (filtered().length > pageSize) {
           <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
             <p class="text-sm text-gray-500">
-              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ totalItems() }}
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
             </p>
             <div class="flex items-center gap-2">
               <button type="button" class="filter-tab filter-tab-inactive"
@@ -284,6 +288,7 @@ export class ClientListComponent implements OnInit {
   deleting = signal(false);
   blacklisting = signal(false);
   saveError = signal<string | null>(null);
+  loadError = signal<string | null>(null);
   clients = signal<Client[]>([]);
   search = signal('');
   showModal = signal(false);
@@ -298,7 +303,6 @@ export class ClientListComponent implements OnInit {
   submitted = signal(false);
   readonly pageSize = 10;
   currentPage = signal(1);
-  totalItems = signal(0);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -312,14 +316,19 @@ export class ClientListComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    return this.clients();
+    const q = this.search().toLowerCase();
+    return this.clients().filter(c => {
+      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q);
+      return matchSearch;
+    });
   });
-  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize)));
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
   paginated = computed(() => {
-    return this.clients();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
   });
-  pageStart = computed(() => this.totalItems() === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
-  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.totalItems()));
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() { this.load(); }
 
@@ -328,27 +337,28 @@ export class ClientListComponent implements OnInit {
   setSearch(value: string) {
     this.search.set(value);
     this.currentPage.set(1);
-    this.load();
   }
 
   previousPage() {
     this.currentPage.update(page => Math.max(1, page - 1));
-    this.load();
   }
 
   nextPage() {
     this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
-    this.load();
   }
 
   load() {
-    this.clientsService.getPage({ page: this.currentPage(), limit: this.pageSize, search: this.search() || undefined }).subscribe({
+    this.loadError.set(null);
+    this.clientsService.getAll().subscribe({
       next: data => {
-        this.clients.set(data.items);
-        this.totalItems.set(data.meta.total);
+        this.clients.set(data);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: (err) => {
+        this.clients.set([]);
+        this.loading.set(false);
+        this.loadError.set(err?.error?.message ?? 'No se han podido cargar los clientes');
+      },
     });
   }
 

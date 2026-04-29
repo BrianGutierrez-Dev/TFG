@@ -23,6 +23,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 30/04/2026  | Eliminación de paginación backend y vuelta a listados completos        | C -> [1.2.42]             |
 | 30/04/2026  | Seed reinicia la base con 20 registros por entidad principal           | C -> [1.2.41]             |
 | 30/04/2026  | Seed restaura la cuenta admin activa con rol y contraseña por defecto  | C -> [1.2.40]             |
 | 30/04/2026  | Alertas internas accionables en el dashboard                           | C -> [1.2.39]             |

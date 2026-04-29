@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import type { Car, PaginatedResponse } from '../models';
+import type { Car } from '../models';
 
 type CarPayload = Omit<Partial<Car>, 'clientId'> & { clientId?: number };
 
@@ -11,9 +11,6 @@ export class CarsService {
 
   getAll(params?: { clientId?: number }) {
     return this.http.get<Car[]>(this.url, { params: params as any });
-  }
-  getPage(params: { page: number; limit: number; search?: string; clientId?: number }) {
-    return this.http.get<PaginatedResponse<Car>>(this.url, { params: params as any });
   }
   getById(id: number) { return this.http.get<any>(`${this.url}/${id}`); }
   create(data: CarPayload) { return this.http.post<Car>(this.url, data); }

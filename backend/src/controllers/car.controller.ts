@@ -1,7 +1,6 @@
 import { Response, NextFunction } from 'express';
 import * as carService from '../services/car.service';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { parsePagination } from '../utils/pagination';
 
 const LICENSE_PLATE_REGEX = /^[0-9]{4}[A-Z]{3}$/;
 
@@ -20,7 +19,7 @@ function isPositiveInteger(value: unknown) {
 export async function getAll(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
-    res.json(await carService.getAll(clientId, parsePagination(req.query)));
+    res.json(await carService.getAll(clientId));
   } catch (err) { next(err); }
 }
 

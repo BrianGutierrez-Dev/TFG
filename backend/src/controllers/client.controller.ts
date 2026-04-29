@@ -1,7 +1,6 @@
 import { Response, NextFunction } from 'express';
 import * as clientService from '../services/client.service';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { parsePagination } from '../utils/pagination';
 
 export async function getAll(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -9,10 +8,7 @@ export async function getAll(req: AuthRequest, res: Response, next: NextFunction
       req.query.blacklisted === 'true' ? true
       : req.query.blacklisted === 'false' ? false
       : undefined;
-    res.json(await clientService.getAll(
-      isBlacklisted !== undefined ? { isBlacklisted } : undefined,
-      parsePagination(req.query)
-    ));
+    res.json(await clientService.getAll(isBlacklisted !== undefined ? { isBlacklisted } : undefined));
   } catch (err) { next(err); }
 }
 

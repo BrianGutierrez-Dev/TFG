@@ -1,7 +1,6 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
 import { ContractStatus } from '@prisma/client';
-import { pageMeta, PaginationOptions } from '../utils/pagination';
 
 const contractInclude = {
   client: { select: { id: true, name: true, dni: true, isBlacklisted: true } },
@@ -14,39 +13,11 @@ function formatDate(date: Date) {
   return new Intl.DateTimeFormat('es-ES').format(date);
 }
 
-export async function getAll(filters?: { status?: ContractStatus; clientId?: number; carId?: number }, pagination?: PaginationOptions) {
+export async function getAll(filters?: { status?: ContractStatus; clientId?: number; carId?: number }) {
   await markOverdue();
 
-  const where = {
-    ...filters,
-    ...(pagination?.search ? {
-      OR: [
-        { client: { name: { contains: pagination.search, mode: 'insensitive' as const } } },
-        { client: { dni: { contains: pagination.search, mode: 'insensitive' as const } } },
-        { car: { licensePlate: { contains: pagination.search, mode: 'insensitive' as const } } },
-        { car: { brand: { contains: pagination.search, mode: 'insensitive' as const } } },
-        { car: { model: { contains: pagination.search, mode: 'insensitive' as const } } },
-      ],
-    } : {}),
-  };
-
-  if (pagination?.page && pagination.limit) {
-    const [items, total] = await prisma.$transaction([
-      prisma.rentalContract.findMany({
-        where,
-        include: contractInclude,
-        orderBy: { createdAt: 'desc' },
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
-      }),
-      prisma.rentalContract.count({ where }),
-    ]);
-
-    return { items, meta: pageMeta(total, pagination.page, pagination.limit) };
-  }
-
   return prisma.rentalContract.findMany({
-    where,
+    where: filters,
     include: contractInclude,
     orderBy: { createdAt: 'desc' },
   });

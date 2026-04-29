@@ -2,7 +2,6 @@ import { Response, NextFunction } from 'express';
 import * as rentalService from '../services/rental.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { ContractStatus } from '@prisma/client';
-import { parsePagination } from '../utils/pagination';
 
 export async function getAll(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -10,7 +9,7 @@ export async function getAll(req: AuthRequest, res: Response, next: NextFunction
     if (req.query.status) filters.status = req.query.status as ContractStatus;
     if (req.query.clientId) filters.clientId = Number(req.query.clientId);
     if (req.query.carId) filters.carId = Number(req.query.carId);
-    res.json(await rentalService.getAll(filters, parsePagination(req.query)));
+    res.json(await rentalService.getAll(filters));
   } catch (err) { next(err); }
 }
 

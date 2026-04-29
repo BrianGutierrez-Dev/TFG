@@ -1,39 +1,9 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
-import { pageMeta, PaginationOptions } from '../utils/pagination';
 
-export async function getAll(clientId?: number, pagination?: PaginationOptions) {
-  const where = {
-    isActive: true,
-    ...(clientId ? { clientId } : {}),
-    ...(pagination?.search ? {
-      OR: [
-        { licensePlate: { contains: pagination.search, mode: 'insensitive' as const } },
-        { brand: { contains: pagination.search, mode: 'insensitive' as const } },
-        { model: { contains: pagination.search, mode: 'insensitive' as const } },
-        { color: { contains: pagination.search, mode: 'insensitive' as const } },
-        { client: { name: { contains: pagination.search, mode: 'insensitive' as const } } },
-      ],
-    } : {}),
-  };
-
-  if (pagination?.page && pagination.limit) {
-    const [items, total] = await prisma.$transaction([
-      prisma.car.findMany({
-        where,
-        include: { client: { select: { id: true, name: true, dni: true } } },
-        orderBy: { brand: 'asc' },
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
-      }),
-      prisma.car.count({ where }),
-    ]);
-
-    return { items, meta: pageMeta(total, pagination.page, pagination.limit) };
-  }
-
+export async function getAll(clientId?: number) {
   return prisma.car.findMany({
-    where,
+    where: { isActive: true, ...(clientId ? { clientId } : {}) },
     include: { client: { select: { id: true, name: true, dni: true } } },
     orderBy: { brand: 'asc' },
   });

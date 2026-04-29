@@ -72,10 +72,10 @@ import type { Car as CarModel, Client } from '../../core/models';
             }
           </tbody>
         </table>
-        @if (totalItems() > pageSize) {
+        @if (filtered().length > pageSize) {
           <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
             <p class="text-sm text-gray-500">
-              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ totalItems() }}
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
             </p>
             <div class="flex items-center gap-2">
               <button type="button" class="filter-tab filter-tab-inactive"
@@ -227,7 +227,6 @@ export class CarListComponent implements OnInit {
   submitted = signal(false);
   readonly pageSize = 10;
   currentPage = signal(1);
-  totalItems = signal(0);
 
   clientQuery = signal('');
   showClientSuggestions = signal(false);
@@ -250,14 +249,18 @@ export class CarListComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    return this.cars();
+    const q = this.search().toLowerCase();
+    return this.cars().filter(c =>
+      !q || c.licensePlate.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q) || c.model.toLowerCase().includes(q) || String(c.year).includes(q) || (c.color ?? '').toLowerCase().includes(q) || (c.client?.name ?? '').toLowerCase().includes(q)
+    );
   });
-  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize)));
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
   paginated = computed(() => {
-    return this.cars();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
   });
-  pageStart = computed(() => this.totalItems() === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
-  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.totalItems()));
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() {
     this.load();
@@ -267,26 +270,19 @@ export class CarListComponent implements OnInit {
   setSearch(value: string) {
     this.search.set(value);
     this.currentPage.set(1);
-    this.load();
   }
 
   previousPage() {
     this.currentPage.update(page => Math.max(1, page - 1));
-    this.load();
   }
 
   nextPage() {
     this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
-    this.load();
   }
 
   load() {
-    this.carsService.getPage({ page: this.currentPage(), limit: this.pageSize, search: this.search() || undefined }).subscribe({
-      next: data => {
-        this.cars.set(data.items);
-        this.totalItems.set(data.meta.total);
-        this.loading.set(false);
-      },
+    this.carsService.getAll().subscribe({
+      next: data => { this.cars.set(data); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }

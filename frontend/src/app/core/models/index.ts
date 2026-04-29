@@ -6,16 +6,6 @@ export type IncidentType = 'PAYMENT' | 'DAMAGE' | 'NOT_RETURNED' | 'LATE_RETURN'
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RepairStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
 export interface Employee {
   id: number;
   email: string;
