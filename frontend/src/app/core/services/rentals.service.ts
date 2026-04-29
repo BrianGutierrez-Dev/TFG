@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import type { RentalContract, ContractStatus } from '../models';
+import type { RentalContract, ContractStatus, PaginatedResponse } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class RentalsService {
@@ -9,6 +9,9 @@ export class RentalsService {
 
   getAll(params?: { status?: ContractStatus; clientId?: number; carId?: number }) {
     return this.http.get<RentalContract[]>(this.url, { params: params as any });
+  }
+  getPage(params: { page: number; limit: number; search?: string; status?: ContractStatus; clientId?: number; carId?: number }) {
+    return this.http.get<PaginatedResponse<RentalContract>>(this.url, { params: params as any });
   }
   getById(id: number) { return this.http.get<RentalContract>(`${this.url}/${id}`); }
   create(data: { clientId: number; carId: number; startDate: string; endDate: string; totalPrice: number; notes?: string }) {

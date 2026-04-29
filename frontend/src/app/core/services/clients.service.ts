@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import type { Client } from '../models';
+import type { Client, PaginatedResponse } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ClientsService {
@@ -9,6 +9,9 @@ export class ClientsService {
 
   getAll(params?: { blacklisted?: boolean }) {
     return this.http.get<Client[]>(this.url, { params: params as any });
+  }
+  getPage(params: { page: number; limit: number; search?: string; blacklisted?: boolean }) {
+    return this.http.get<PaginatedResponse<Client>>(this.url, { params: params as any });
   }
   getById(id: number) { return this.http.get<Client>(`${this.url}/${id}`); }
   getHistory(id: number) { return this.http.get<any>(`${this.url}/${id}/history`); }
