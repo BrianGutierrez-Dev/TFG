@@ -53,14 +53,14 @@ import type { RentalContract } from '../../core/models';
         </a>
         <a routerLink="/incidents" class="card p-5 hover:shadow-md transition-shadow cursor-pointer">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Incidencias</span>
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Incidencias activas</span>
             <lucide-icon [img]="AlertTriangle" [size]="16" class="text-gray-300"></lucide-icon>
           </div>
           <p class="text-2xl font-bold text-gray-900">{{ stats().unresolvedIncidents }}</p>
         </a>
         <a routerLink="/repairs" class="card p-5 hover:shadow-md transition-shadow cursor-pointer">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Reparaciones</span>
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Reparaciones pendientes</span>
             <lucide-icon [img]="Wrench" [size]="16" class="text-gray-300"></lucide-icon>
           </div>
           <p class="text-2xl font-bold text-gray-900">{{ stats().pendingRepairs }}</p>

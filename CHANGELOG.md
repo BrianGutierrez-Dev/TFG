@@ -23,6 +23,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 29/04/2026  | Renombrado de métricas del dashboard a incidencias activas y reparaciones pendientes | C -> [1.2.30] |
 | 29/04/2026  | Paginación de incidencias, mantenimiento, vehículos y reparaciones cada 10 registros | C -> [1.2.28] |
 | 29/04/2026  | Paginación de clientes y contratos cada 10 registros                   | C -> [1.2.27]             |
 | 29/04/2026  | Gestión de baja y despido de empleados con bloqueo de acceso           | C -> [1.2.26]             |
