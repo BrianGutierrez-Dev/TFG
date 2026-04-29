@@ -122,6 +122,9 @@ type EmployeeAccessStatus = 'ACTIVE' | 'BAJA' | 'DESPEDIDO';
                   </select>
                 </div>
               </div>
+              @if (saveError()) {
+                <p class="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ saveError() }}</p>
+              }
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
                 <app-button type="submit" [loading]="saving()">Guardar</app-button>
@@ -138,8 +141,11 @@ type EmployeeAccessStatus = 'ACTIVE' | 'BAJA' | 'DESPEDIDO';
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
             <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja empleado?</h2>
             <p class="text-sm text-gray-500 mb-6">Se bloqueará su acceso, pero se conservará su historial.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
               <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
@@ -161,11 +167,13 @@ export class EmployeeListComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
+  saveError = signal<string | null>(null);
   employees = signal<Employee[]>([]);
   search = signal('');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
 
   form = this.fb.group({
     name: ['', Validators.required],
@@ -197,6 +205,7 @@ export class EmployeeListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
+    this.saveError.set(null);
     this.form.reset({ role: 'EMPLOYEE', accessStatus: 'ACTIVE' });
     this.form.get('password')!.setValidators(Validators.required);
     this.form.get('password')!.updateValueAndValidity();
@@ -205,6 +214,7 @@ export class EmployeeListComponent implements OnInit {
 
   openEdit(e: Employee) {
     this.editingId.set(e.id);
+    this.saveError.set(null);
     this.form.patchValue({
       name: e.name,
       email: e.email,
@@ -217,7 +227,10 @@ export class EmployeeListComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.saveError.set(null);
+  }
 
   employeeAccessStatus(e: Employee): EmployeeAccessStatus {
     if (e.isActive) return 'ACTIVE';
@@ -234,6 +247,7 @@ export class EmployeeListComponent implements OnInit {
   save() {
     if (this.form.invalid) return;
     this.saving.set(true);
+    this.saveError.set(null);
     const v = this.form.value;
     const accessStatus = v.accessStatus as EmployeeAccessStatus;
     const accessData = {
@@ -250,24 +264,41 @@ export class EmployeeListComponent implements OnInit {
       if (v.password) data.password = v.password;
       this.employeesService.update(this.editingId()!, data).subscribe({
         next: () => { this.saving.set(false); this.closeModal(); this.load(); },
-        error: () => this.saving.set(false),
+        error: (err) => {
+          this.saving.set(false);
+          this.saveError.set(err?.error?.message ?? 'No se ha podido guardar el empleado');
+        },
       });
     } else {
       this.employeesService.create({ name: v.name!, email: v.email!, password: v.password!, role: v.role! }).subscribe({
         next: () => { this.saving.set(false); this.closeModal(); this.load(); },
-        error: () => this.saving.set(false),
+        error: (err) => {
+          this.saving.set(false);
+          this.saveError.set(err?.error?.message ?? 'No se ha podido crear el empleado');
+        },
       });
     }
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.employeesService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido dar de baja el empleado');
+      },
     });
   }
 }
