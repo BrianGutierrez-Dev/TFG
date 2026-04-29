@@ -70,6 +70,7 @@ export async function update(
   } else if (data.isBlacklisted === false) {
     updateData.blacklistReason = null;
     updateData.blacklistedAt = null;
+    updateData.wasBlacklisted = true;
   }
 
   return prisma.client.update({ where: { id }, data: updateData });

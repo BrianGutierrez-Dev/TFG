@@ -57,6 +57,8 @@ import type { Client } from '../../core/models';
                 <td>
                   @if (c.isBlacklisted) {
                     <app-blacklisted-badge></app-blacklisted-badge>
+                  } @else if (c.wasBlacklisted) {
+                    <span class="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Ex-blacklist</span>
                   } @else {
                     <span class="text-xs text-gray-400">Normal</span>
                   }
@@ -195,6 +197,30 @@ import type { Client } from '../../core/models';
       </div>
     }
 
+    <!-- Unblacklist confirmation modal -->
+    @if (unblacklistTarget()) {
+      <div class="modal-overlay">
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <lucide-icon [img]="ShieldOff" [size]="16" class="text-amber-600"></lucide-icon>
+              </div>
+              <h2 class="text-base font-semibold text-gray-900">¿Quitar de la Blacklist?</h2>
+            </div>
+            <p class="text-sm text-gray-500 mb-6">
+              Vas a quitar a <span class="font-semibold text-gray-900">{{ unblacklistTarget()!.name }}</span> de la lista negra.
+              Podrá volver a alquilar vehículos con normalidad.
+            </p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="unblacklistTarget.set(null)">Cancelar</app-button>
+              <app-button variant="warning" [loading]="blacklisting()" (clicked)="confirmRemoveFromBlacklist()">Quitar de Blacklist</app-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Delete modal -->
     @if (deleteId()) {
       <div class="modal-overlay">
@@ -241,6 +267,7 @@ export class ClientListComponent implements OnInit {
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
   blacklistTarget = signal<Client | null>(null);
+  unblacklistTarget = signal<Client | null>(null);
   blacklistReasonText = signal('');
   blacklistReasonError = signal(false);
   submitted = signal(false);
@@ -343,15 +370,27 @@ export class ClientListComponent implements OnInit {
 
   toggleBlacklist(c: Client) {
     if (c.isBlacklisted) {
-      this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
-        next: () => this.clients.update(list =>
-          list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
-        ),
-      });
+      this.unblacklistTarget.set(c);
     } else {
       this.blacklistReasonText.set('');
       this.blacklistTarget.set(c);
     }
+  }
+
+  confirmRemoveFromBlacklist() {
+    const c = this.unblacklistTarget();
+    if (!c) return;
+    this.blacklisting.set(true);
+    this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
+      next: () => {
+        this.blacklisting.set(false);
+        this.unblacklistTarget.set(null);
+        this.clients.update(list =>
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
+        );
+      },
+      error: () => this.blacklisting.set(false),
+    });
   }
 
   confirmAddToBlacklist() {

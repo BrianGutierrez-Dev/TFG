@@ -83,6 +83,7 @@ model Client {
   isBlacklisted   Boolean   @default(false)
   blacklistReason String?
   blacklistedAt   DateTime?
+  wasBlacklisted  Boolean   @default(false)
   notes           String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

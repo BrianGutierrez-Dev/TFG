@@ -3,12 +3,13 @@ import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Ban, ShieldOff, ShieldAlert, UserX } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
+import { ButtonComponent } from '../../shared/components/button.component';
 import type { Client } from '../../core/models';
 
 @Component({
   selector: 'app-blacklist',
   standalone: true,
-  imports: [DatePipe, LucideAngularModule, SpinnerComponent],
+  imports: [DatePipe, LucideAngularModule, SpinnerComponent, ButtonComponent],
   template: `
     <div class="-mx-6 -mt-6 -mb-6 min-h-[calc(100vh-3.5rem)] bg-gradient-to-b from-gray-700 to-gray-900 px-6 pt-0 pb-16">
 
@@ -93,7 +94,7 @@ import type { Client } from '../../core/models';
 
                 <!-- Action -->
                 <button
-                  (click)="removeFromBlacklist(c)"
+                  (click)="confirmRemove(c)"
                   [disabled]="removingId() === c.id"
                   class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-gray-700 text-gray-400 text-sm font-medium transition-all duration-150 hover:border-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed">
                   @if (removingId() === c.id) {
@@ -112,6 +113,27 @@ import type { Client } from '../../core/models';
       }
 
     </div>
+
+    @if (confirmTarget()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full mx-4 shadow-2xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <lucide-icon [img]="ShieldOff" [size]="16" class="text-amber-600"></lucide-icon>
+            </div>
+            <h2 class="text-base font-semibold text-gray-900">¿Quitar de la Blacklist?</h2>
+          </div>
+          <p class="text-sm text-gray-500 mb-6">
+            Vas a rehabilitar a <span class="font-semibold text-gray-900">{{ confirmTarget()!.name }}</span>.
+            Podrá volver a alquilar vehículos con normalidad.
+          </p>
+          <div class="flex justify-end gap-3">
+            <app-button variant="secondary" (clicked)="confirmTarget.set(null)">Cancelar</app-button>
+            <app-button variant="warning" [loading]="removingId() === confirmTarget()!.id" (clicked)="doRemove()">Quitar de Blacklist</app-button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class BlacklistComponent implements OnInit {
@@ -125,6 +147,7 @@ export class BlacklistComponent implements OnInit {
   loading = signal(true);
   clients = signal<Client[]>([]);
   removingId = signal<number | null>(null);
+  confirmTarget = signal<Client | null>(null);
 
   ngOnInit() { this.load(); }
 
@@ -135,14 +158,22 @@ export class BlacklistComponent implements OnInit {
     });
   }
 
-  removeFromBlacklist(c: Client) {
+  confirmRemove(c: Client) { this.confirmTarget.set(c); }
+
+  doRemove() {
+    const c = this.confirmTarget();
+    if (!c) return;
     this.removingId.set(c.id);
     this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
       next: () => {
         this.clients.update(list => list.filter(x => x.id !== c.id));
         this.removingId.set(null);
+        this.confirmTarget.set(null);
       },
-      error: () => this.removingId.set(null),
+      error: () => {
+        this.removingId.set(null);
+        this.confirmTarget.set(null);
+      },
     });
   }
 }

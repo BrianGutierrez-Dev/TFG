@@ -18,6 +18,7 @@ interface ClientDetail {
   isBlacklisted: boolean;
   blacklistReason?: string;
   blacklistedAt?: string;
+  wasBlacklisted?: boolean;
   createdAt: string;
   cars: Array<{ id: number; licensePlate: string; brand: string; model: string; year: number; color?: string }>;
   contracts: Array<{
@@ -75,6 +76,8 @@ interface ClientDetail {
                 <h2 class="text-base font-semibold text-gray-900">{{ client()!.name }}</h2>
                 @if (client()!.isBlacklisted) {
                   <app-blacklisted-badge></app-blacklisted-badge>
+                } @else if (client()!.wasBlacklisted) {
+                  <span class="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Ex-blacklist</span>
                 }
               </div>
             </div>

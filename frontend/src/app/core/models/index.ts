@@ -25,6 +25,7 @@ export interface Client {
   isBlacklisted: boolean;
   blacklistReason?: string;
   blacklistedAt?: string;
+  wasBlacklisted?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;
