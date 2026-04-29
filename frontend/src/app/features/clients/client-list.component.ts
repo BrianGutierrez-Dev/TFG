@@ -24,7 +24,7 @@ import type { Client } from '../../core/models';
     <div class="flex items-center gap-3 mb-5">
       <div class="relative flex-1 max-w-sm">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por nombre, DNI, email, teléfono...">
       </div>
     </div>
@@ -46,7 +46,7 @@ import type { Client } from '../../core/models';
             </tr>
           </thead>
           <tbody>
-            @for (c of filtered(); track c.id) {
+            @for (c of paginated(); track c.id) {
               <tr class="cursor-pointer" (click)="goToDetail(c.id)">
                 <td class="font-medium text-gray-900">{{ c.name }}</td>
                 <td class="font-mono text-sm text-gray-600">{{ c.dni }}</td>
@@ -85,6 +85,26 @@ import type { Client } from '../../core/models';
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -276,6 +296,8 @@ export class ClientListComponent implements OnInit {
   blacklistReasonError = signal(false);
   blacklistApiError = signal<string | null>(null);
   submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -295,10 +317,30 @@ export class ClientListComponent implements OnInit {
       return matchSearch;
     });
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() { this.load(); }
 
   goToDetail(id: number) { this.router.navigate(['/clients', id]); }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
+  }
 
   load() {
     this.clientsService.getAll().subscribe({
