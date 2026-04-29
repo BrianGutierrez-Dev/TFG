@@ -18,6 +18,15 @@ function maintenanceDateRangeValidator(control: AbstractControl): ValidationErro
   return new Date(nextDueDate) <= new Date(date) ? { dateRange: true } : null;
 }
 
+function trimmedMinLengthValidator(minLength: number) {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = typeof control.value === 'string' ? control.value.trim() : '';
+    return value.length >= minLength
+      ? null
+      : { trimmedMinLength: { requiredLength: minLength, actualLength: value.length } };
+  };
+}
+
 @Component({
   selector: 'app-maintenance-list',
   standalone: true,
@@ -144,10 +153,10 @@ function maintenanceDateRangeValidator(control: AbstractControl): ValidationErro
                          maxlength="80" placeholder="Aceite, Neumáticos, ITV...">
                 </div>
                 <div class="col-span-2">
-                  <label class="form-label">Descripción</label>
+                  <label class="form-label">Descripción *</label>
                   <textarea formControlName="description" class="form-textarea" rows="2" maxlength="500"
                             [class.form-field-error]="isInvalid('description')"
-                            placeholder="Detalles del mantenimiento..."></textarea>
+                            placeholder="Detalles del mantenimiento, mínimo 3 letras..."></textarea>
                 </div>
                 <div>
                   <label class="form-label">Coste (€) *</label>
@@ -229,7 +238,7 @@ export class MaintenanceListComponent implements OnInit {
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
     type: ['', [Validators.required, Validators.maxLength(80), Validators.pattern(/^.*\S.*$/)]],
-    description: ['', [Validators.minLength(3), Validators.maxLength(500)]],
+    description: ['', [trimmedMinLengthValidator(3), Validators.maxLength(500)]],
     cost: [null as number | null, [Validators.required, Validators.min(1.01)]],
     date: [new Date().toISOString().split('T')[0], Validators.required],
     nextDueDate: [''],

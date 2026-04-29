@@ -33,8 +33,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     const trimmedType = normalizeText(type);
     const trimmedDescription = normalizeText(description);
 
-    if (!carId || !trimmedType || cost == null || !date) {
-      res.status(400).json({ message: 'Faltan campos obligatorios: carId, type, cost, date' });
+    if (!carId || !trimmedType || !trimmedDescription || cost == null || !date) {
+      res.status(400).json({ message: 'Faltan campos obligatorios: carId, type, description, cost, date' });
       return;
     }
     if (!isPositiveInteger(carId)) {
@@ -45,7 +45,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       res.status(400).json({ message: 'El tipo de mantenimiento no puede superar los 80 caracteres' });
       return;
     }
-    if (trimmedDescription && (trimmedDescription.length < 3 || trimmedDescription.length > 500)) {
+    if (trimmedDescription.length < 3 || trimmedDescription.length > 500) {
       res.status(400).json({ message: 'La descripción debe tener entre 3 y 500 caracteres' });
       return;
     }
@@ -65,7 +65,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     req.body = {
       carId: Number(carId),
       type: trimmedType,
-      description: trimmedDescription || undefined,
+      description: trimmedDescription,
       cost: Number(cost),
       date,
       nextDueDate: nextDueDate || undefined,
