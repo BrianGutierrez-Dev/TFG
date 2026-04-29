@@ -8,7 +8,14 @@ async function main() {
 
   const admin = await prisma.employee.upsert({
     where: { email: 'admin@taller.com' },
-    update: {},
+    update: {
+      password: adminHash,
+      name: 'Administrador',
+      role: 'ADMIN',
+      isActive: true,
+      deactivatedAt: null,
+      terminationReason: null,
+    },
     create: { email: 'admin@taller.com', password: adminHash, name: 'Administrador', role: 'ADMIN' },
   });
 
