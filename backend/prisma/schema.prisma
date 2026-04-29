@@ -62,13 +62,16 @@ enum RepairStatus {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Employee {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(EMPLOYEE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  name              String
+  role              Role      @default(EMPLOYEE)
+  isActive          Boolean   @default(true)
+  deactivatedAt     DateTime?
+  terminationReason String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   carReturns CarReturn[]
 }

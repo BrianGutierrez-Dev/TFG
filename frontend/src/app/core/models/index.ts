@@ -11,6 +11,9 @@ export interface Employee {
   email: string;
   name: string;
   role: Role;
+  isActive: boolean;
+  deactivatedAt?: string;
+  terminationReason?: 'BAJA' | 'DESPEDIDO';
   createdAt: string;
   updatedAt?: string;
 }

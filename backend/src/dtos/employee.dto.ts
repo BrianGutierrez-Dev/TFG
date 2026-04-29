@@ -1,5 +1,5 @@
 import {
-  IsEmail, IsString, IsNotEmpty, IsOptional, Length, IsEnum,
+  IsBoolean, IsEmail, IsString, IsNotEmpty, IsOptional, Length, IsEnum, IsIn,
 } from 'class-validator';
 
 export class CreateEmployeeDto {
@@ -39,4 +39,12 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsEnum(['ADMIN', 'EMPLOYEE'], { message: 'El rol debe ser ADMIN o EMPLOYEE' })
   role?: 'ADMIN' | 'EMPLOYEE';
+
+  @IsOptional()
+  @IsBoolean({ message: 'El estado activo debe ser verdadero o falso' })
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(['BAJA', 'DESPEDIDO'], { message: 'El motivo debe ser BAJA o DESPEDIDO' })
+  terminationReason?: 'BAJA' | 'DESPEDIDO';
 }

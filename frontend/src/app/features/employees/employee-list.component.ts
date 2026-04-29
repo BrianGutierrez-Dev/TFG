@@ -8,6 +8,8 @@ import { PageHeaderComponent } from '../../shared/components/page-header.compone
 import { ButtonComponent } from '../../shared/components/button.component';
 import type { Employee, Role } from '../../core/models';
 
+type EmployeeAccessStatus = 'ACTIVE' | 'BAJA' | 'DESPEDIDO';
+
 @Component({
   selector: 'app-employee-list',
   standalone: true,
@@ -38,6 +40,7 @@ import type { Employee, Role } from '../../core/models';
               <th>Nombre</th>
               <th>Email</th>
               <th>Rol</th>
+              <th>Estado</th>
               <th>Creado</th>
               <th>Acciones</th>
             </tr>
@@ -53,6 +56,12 @@ import type { Employee, Role } from '../../core/models';
                     {{ e.role === 'ADMIN' ? 'Admin' : 'Empleado' }}
                   </span>
                 </td>
+                <td>
+                  <span class="text-xs font-medium px-2 py-0.5 rounded-full"
+                        [class]="e.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+                    {{ employeeStatusLabel(e) }}
+                  </span>
+                </td>
                 <td class="text-sm text-gray-500">{{ e.createdAt | date:'dd/MM/yyyy' }}</td>
                 <td class="space-x-0.5">
                   <button (click)="openEdit(e)" class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
@@ -65,7 +74,7 @@ import type { Employee, Role } from '../../core/models';
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="text-center py-14 text-gray-400">
+                <td colspan="6" class="text-center py-14 text-gray-400">
                   <lucide-icon [img]="UserCog" [size]="32" class="mx-auto mb-2 opacity-20"></lucide-icon>
                   <p class="text-sm">No hay empleados</p>
                 </td>
@@ -102,6 +111,14 @@ import type { Employee, Role } from '../../core/models';
                   <select formControlName="role" class="form-select">
                     <option value="EMPLOYEE">Empleado</option>
                     <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Estado de acceso</label>
+                  <select formControlName="accessStatus" class="form-select">
+                    <option value="ACTIVE">Activo</option>
+                    <option value="BAJA">Baja</option>
+                    <option value="DESPEDIDO">Despedido</option>
                   </select>
                 </div>
               </div>
@@ -155,12 +172,17 @@ export class EmployeeListComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     password: [''],
     role: ['EMPLOYEE' as Role],
+    accessStatus: ['ACTIVE' as EmployeeAccessStatus],
   });
 
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.employees().filter(e =>
-      !q || e.name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q) || e.role.toLowerCase().includes(q)
+      !q
+      || e.name.toLowerCase().includes(q)
+      || e.email.toLowerCase().includes(q)
+      || e.role.toLowerCase().includes(q)
+      || this.employeeStatusLabel(e).toLowerCase().includes(q)
     );
   });
 
@@ -175,7 +197,7 @@ export class EmployeeListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
-    this.form.reset({ role: 'EMPLOYEE' });
+    this.form.reset({ role: 'EMPLOYEE', accessStatus: 'ACTIVE' });
     this.form.get('password')!.setValidators(Validators.required);
     this.form.get('password')!.updateValueAndValidity();
     this.showModal.set(true);
@@ -183,7 +205,13 @@ export class EmployeeListComponent implements OnInit {
 
   openEdit(e: Employee) {
     this.editingId.set(e.id);
-    this.form.patchValue({ name: e.name, email: e.email, role: e.role, password: '' });
+    this.form.patchValue({
+      name: e.name,
+      email: e.email,
+      role: e.role,
+      password: '',
+      accessStatus: this.employeeAccessStatus(e),
+    });
     this.form.get('password')!.clearValidators();
     this.form.get('password')!.updateValueAndValidity();
     this.showModal.set(true);
@@ -191,12 +219,34 @@ export class EmployeeListComponent implements OnInit {
 
   closeModal() { this.showModal.set(false); }
 
+  employeeAccessStatus(e: Employee): EmployeeAccessStatus {
+    if (e.isActive) return 'ACTIVE';
+    return e.terminationReason === 'DESPEDIDO' ? 'DESPEDIDO' : 'BAJA';
+  }
+
+  employeeStatusLabel(e: Employee) {
+    const status = this.employeeAccessStatus(e);
+    if (status === 'DESPEDIDO') return 'Despedido';
+    if (status === 'BAJA') return 'Baja';
+    return 'Activo';
+  }
+
   save() {
     if (this.form.invalid) return;
     this.saving.set(true);
     const v = this.form.value;
+    const accessStatus = v.accessStatus as EmployeeAccessStatus;
+    const accessData = {
+      isActive: accessStatus === 'ACTIVE',
+      terminationReason: accessStatus === 'ACTIVE' ? undefined : accessStatus,
+    };
     if (this.editingId()) {
-      const data: Partial<Employee> & { password?: string } = { name: v.name!, email: v.email!, role: v.role as Role };
+      const data: Partial<Employee> & { password?: string } = {
+        name: v.name!,
+        email: v.email!,
+        role: v.role as Role,
+        ...accessData,
+      };
       if (v.password) data.password = v.password;
       this.employeesService.update(this.editingId()!, data).subscribe({
         next: () => { this.saving.set(false); this.closeModal(); this.load(); },

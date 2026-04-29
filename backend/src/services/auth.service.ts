@@ -8,6 +8,7 @@ export async function login(email: string, password: string) {
   const employee = await prisma.employee.findUnique({ where: { email } });
 
   if (!employee) throw new AppError(401, 'Credenciales incorrectas');
+  if (!employee.isActive) throw new AppError(403, 'Empleado dado de baja. Acceso bloqueado');
 
   const valid = await bcrypt.compare(password, employee.password);
   if (!valid) throw new AppError(401, 'Credenciales incorrectas');
@@ -26,8 +27,18 @@ export async function login(email: string, password: string) {
 export async function getProfile(employeeId: number) {
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    select: { id: true, email: true, name: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      isActive: true,
+      deactivatedAt: true,
+      terminationReason: true,
+      createdAt: true,
+    },
   });
   if (!employee) throw new AppError(404, 'Empleado no encontrado');
+  if (!employee.isActive) throw new AppError(403, 'Empleado dado de baja. Acceso bloqueado');
   return employee;
 }

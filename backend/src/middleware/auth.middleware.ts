@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { ENV } from '../config/env';
+import prisma from '../prisma/client';
 
 export interface AuthRequest extends Request {
   employee?: { id: number; email: string; role: string };
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+export async function authenticate(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -22,7 +23,17 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
       email: string;
       role: string;
     };
-    req.employee = payload;
+    const employee = await prisma.employee.findUnique({
+      where: { id: payload.id },
+      select: { id: true, email: true, role: true, isActive: true },
+    });
+
+    if (!employee?.isActive) {
+      res.status(401).json({ message: 'Empleado dado de baja. Acceso bloqueado' });
+      return;
+    }
+
+    req.employee = { id: employee.id, email: employee.email, role: employee.role };
     next();
   } catch {
     res.status(401).json({ message: 'Token inválido o expirado' });

@@ -23,6 +23,10 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
 
 export async function update(req: AuthRequest, res: Response, next: NextFunction) {
   try {
+    if (Number(req.params.id) === req.employee?.id && req.body.isActive === false) {
+      res.status(400).json({ message: 'No puedes darte de baja a ti mismo' });
+      return;
+    }
     res.json(await employeeService.update(Number(req.params.id), req.body));
   } catch (err) { next(err); }
 }
