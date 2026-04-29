@@ -12,7 +12,7 @@ router.get('/', clientController.getAll);
 router.get('/:id', clientController.getById);
 router.get('/:id/history', clientController.getHistory);
 router.post('/', validateBody(CreateClientDto), clientController.create);
-router.put('/:id', validateBody(UpdateClientDto), clientController.update);
+router.put('/:id', clientController.update);
 router.delete('/:id', clientController.remove);
 
 export default router;

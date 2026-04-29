@@ -41,7 +41,7 @@ function maintenanceDateRangeValidator(control: AbstractControl): ValidationErro
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
         <input [value]="search()" (input)="search.set($any($event.target).value)"
-               class="form-input pl-9" placeholder="Buscar por matrícula, tipo...">
+               class="form-input pl-9" placeholder="Buscar por matrícula, marca, modelo, tipo...">
       </div>
     </div>
 
@@ -240,7 +240,7 @@ export class MaintenanceListComponent implements OnInit {
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.maintenances().filter(m =>
-      !q || m.car.licensePlate.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)
+      !q || m.car.licensePlate.toLowerCase().includes(q) || m.car.brand.toLowerCase().includes(q) || m.car.model.toLowerCase().includes(q) || m.type.toLowerCase().includes(q) || (m.description ?? '').toLowerCase().includes(q)
     );
   });
 

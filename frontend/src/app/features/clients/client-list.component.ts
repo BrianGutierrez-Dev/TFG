@@ -12,7 +12,7 @@ import type { Client } from '../../core/models';
 @Component({
   selector: 'app-client-list',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
+  imports: [ReactiveFormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
   template: `
     <app-page-header title="Clientes" [subtitle]="clients().length + ' registros'">
       <app-button (clicked)="openCreate()">
@@ -22,13 +22,11 @@ import type { Client } from '../../core/models';
     </app-page-header>
 
     <div class="flex items-center gap-3 mb-5">
-      <div class="relative flex-1 max-w-xs">
+      <div class="relative flex-1 max-w-sm">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
         <input [value]="search()" (input)="search.set($any($event.target).value)"
-               class="form-input pl-9" placeholder="Buscar por nombre, DNI...">
+               class="form-input pl-9" placeholder="Buscar por nombre, DNI, email, teléfono...">
       </div>
-      <button [class]="'filter-tab ' + (filter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="filter.set('all')">Todos</button>
-      <button [class]="'filter-tab ' + (filter() === 'blacklisted' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="filter.set('blacklisted')">Blacklist</button>
     </div>
 
     @if (loading()) {
@@ -181,12 +179,19 @@ import type { Client } from '../../core/models';
               </p>
               <div>
                 <label class="form-label">Razón *</label>
-                <textarea [ngModel]="blacklistReasonText()" (ngModelChange)="blacklistReasonText.set($event)"
-                          class="form-textarea" rows="3"
-                          placeholder="Describe el motivo del bloqueo..."></textarea>
+                <textarea #reasonInput
+                          (input)="blacklistReasonText = reasonInput.value; blacklistReasonError.set(false)"
+                          [class]="'form-textarea ' + (blacklistReasonError() ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : '')"
+                          rows="3" placeholder="Describe el motivo del bloqueo..."></textarea>
+                @if (blacklistReasonError()) {
+                  <p class="text-xs text-red-500 mt-1">La razón es obligatoria</p>
+                }
               </div>
+              @if (blacklistApiError()) {
+                <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-4">{{ blacklistApiError() }}</p>
+              }
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-                <app-button variant="secondary" (clicked)="blacklistTarget.set(null)">Cancelar</app-button>
+                <app-button variant="secondary" (clicked)="blacklistTarget.set(null); blacklistReasonError.set(false); blacklistApiError.set(null)">Cancelar</app-button>
                 <app-button variant="danger" [loading]="blacklisting()" (clicked)="confirmAddToBlacklist()">
                   Añadir a Blacklist
                 </app-button>
@@ -261,15 +266,15 @@ export class ClientListComponent implements OnInit {
   saveError = signal<string | null>(null);
   clients = signal<Client[]>([]);
   search = signal('');
-  filter = signal<'all' | 'blacklisted'>('all');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
   blacklistTarget = signal<Client | null>(null);
   unblacklistTarget = signal<Client | null>(null);
-  blacklistReasonText = signal('');
+  blacklistReasonText = '';
   blacklistReasonError = signal(false);
+  blacklistApiError = signal<string | null>(null);
   submitted = signal(false);
 
   form = this.fb.group({
@@ -286,9 +291,8 @@ export class ClientListComponent implements OnInit {
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.clients().filter(c => {
-      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
-      const matchFilter = this.filter() === 'all' || (this.filter() === 'blacklisted' && c.isBlacklisted);
-      return matchSearch && matchFilter;
+      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q);
+      return matchSearch;
     });
   });
 
@@ -372,7 +376,9 @@ export class ClientListComponent implements OnInit {
     if (c.isBlacklisted) {
       this.unblacklistTarget.set(c);
     } else {
-      this.blacklistReasonText.set('');
+      this.blacklistReasonText = '';
+      this.blacklistReasonError.set(false);
+      this.blacklistApiError.set(null);
       this.blacklistTarget.set(c);
     }
   }
@@ -395,17 +401,25 @@ export class ClientListComponent implements OnInit {
 
   confirmAddToBlacklist() {
     const c = this.blacklistTarget();
-    if (!c || !this.blacklistReasonText().trim()) return;
+    if (!c) return;
+    if (!this.blacklistReasonText.trim()) {
+      this.blacklistReasonError.set(true);
+      return;
+    }
+    const reason = this.blacklistReasonText.trim();
     this.blacklisting.set(true);
-    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText().trim() } as any).subscribe({
+    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: reason } as any).subscribe({
       next: () => {
         this.blacklisting.set(false);
         this.blacklistTarget.set(null);
         this.clients.update(list =>
-          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: this.blacklistReasonText().trim() } : x)
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: reason } : x)
         );
       },
-      error: () => this.blacklisting.set(false),
+      error: (err: any) => {
+        this.blacklisting.set(false);
+        this.blacklistApiError.set(err?.error?.message ?? 'Error al guardar. Inténtalo de nuevo.');
+      },
     });
   }
 

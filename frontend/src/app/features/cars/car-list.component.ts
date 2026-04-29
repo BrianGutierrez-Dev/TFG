@@ -24,7 +24,7 @@ import type { Car as CarModel, Client } from '../../core/models';
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
         <input [value]="search()" (input)="search.set($any($event.target).value)"
-               class="form-input pl-9" placeholder="Buscar por matrícula, marca...">
+               class="form-input pl-9" placeholder="Buscar por matrícula, marca, modelo, año, color...">
       </div>
     </div>
 
@@ -224,7 +224,7 @@ export class CarListComponent implements OnInit {
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.cars().filter(c =>
-      !q || c.licensePlate.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q) || c.model.toLowerCase().includes(q)
+      !q || c.licensePlate.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q) || c.model.toLowerCase().includes(q) || String(c.year).includes(q) || (c.color ?? '').toLowerCase().includes(q) || (c.client?.name ?? '').toLowerCase().includes(q)
     );
   });
 
