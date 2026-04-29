@@ -171,16 +171,48 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                     }
                   }
                 </div>
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="form-label">Vehículo *</label>
-                  <select formControlName="carId" class="form-select">
-                    <option [ngValue]="null" disabled>Seleccionar vehículo</option>
-                    @for (c of carOptions(); track c.id) {
-                      <option [ngValue]="c.id" [disabled]="isCarUnavailable(c.id)">
-                        {{ c.licensePlate }} — {{ c.brand }} {{ c.model }}{{ isCarUnavailable(c.id) ? ' (no disponible)' : '' }}
-                      </option>
+                  @if (selectedCar()) {
+                    <div [class]="'form-input flex items-center justify-between cursor-default ' + (selectedCarUnavailable() ? 'form-field-error bg-gray-50 text-gray-400' : '')">
+                      <span [class]="selectedCarUnavailable() ? 'text-gray-400' : 'text-gray-900'">
+                        <span class="font-mono">{{ selectedCar()!.licensePlate }}</span>
+                        <span class="ml-1">{{ selectedCar()!.brand }} {{ selectedCar()!.model }}</span>
+                      </span>
+                      <button type="button" (click)="clearCar()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('carId')"
+                           placeholder="Buscar por matrícula o modelo..."
+                           [value]="carQuery()"
+                           (input)="onCarSearch($any($event.target).value)"
+                           (focus)="showCarSuggestions.set(true)"
+                           (blur)="onCarBlur()"
+                           autocomplete="off">
+                    @if (showCarSuggestions() && carQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                        @if (carSuggestions().length > 0) {
+                          @for (c of carSuggestions(); track c.id) {
+                            <li>
+                              <button type="button"
+                                      [disabled]="isCarUnavailable(c.id)"
+                                      (mousedown)="selectCar(c)"
+                                      [class]="'w-full text-left px-4 py-2.5 transition-colors text-sm ' + (isCarUnavailable(c.id) ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 text-gray-900')">
+                                <span class="font-mono font-medium">{{ c.licensePlate }}</span>
+                                <span class="ml-2">{{ c.brand }} {{ c.model }}</span>
+                                @if (isCarUnavailable(c.id)) {
+                                  <span class="ml-2 text-xs text-gray-400">No disponible</span>
+                                }
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                   @if (selectedCarUnavailable()) {
                     <p class="mt-2 text-xs text-red-600">{{ selectedCarAvailabilityMessage() }}</p>
                   }
@@ -274,11 +306,21 @@ export class RentalListComponent implements OnInit {
   clientQuery = signal('');
   showClientSuggestions = signal(false);
   selectedClient = signal<Client | null>(null);
+  carQuery = signal('');
+  showCarSuggestions = signal(false);
+  selectedCar = signal<Car | null>(null);
   clientSuggestions = computed(() => {
     const q = this.clientQuery().toLowerCase().trim();
     if (!q) return [];
     return this.clientOptions().filter(c =>
       c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
+  carSuggestions = computed(() => {
+    const q = this.carQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.carOptions().filter(c =>
+      c.licensePlate.toLowerCase().includes(q) || c.model.toLowerCase().includes(q)
     ).slice(0, 8);
   });
 
@@ -345,8 +387,11 @@ export class RentalListComponent implements OnInit {
     this.createError.set(null);
     this.submitted.set(false);
     this.selectedClient.set(null);
+    this.selectedCar.set(null);
     this.clientQuery.set('');
+    this.carQuery.set('');
     this.showClientSuggestions.set(false);
+    this.showCarSuggestions.set(false);
     this.clientsService.getAll().subscribe({ next: data => this.clientOptions.set(data) });
     this.carsService.getAll().subscribe({ next: data => this.carOptions.set(data) });
     this.showModal.set(true);
@@ -357,7 +402,9 @@ export class RentalListComponent implements OnInit {
     this.createError.set(null);
     this.submitted.set(false);
     this.selectedClient.set(null);
+    this.selectedCar.set(null);
     this.clientQuery.set('');
+    this.carQuery.set('');
   }
 
   onClientSearch(value: string) {
@@ -382,6 +429,31 @@ export class RentalListComponent implements OnInit {
 
   onClientBlur() {
     setTimeout(() => this.showClientSuggestions.set(false), 150);
+  }
+
+  onCarSearch(value: string) {
+    this.carQuery.set(value);
+    this.form.controls.carId.setValue(null);
+    this.selectedCar.set(null);
+    this.showCarSuggestions.set(true);
+  }
+
+  selectCar(c: Car) {
+    if (this.isCarUnavailable(c.id)) return;
+    this.selectedCar.set(c);
+    this.form.controls.carId.setValue(c.id);
+    this.showCarSuggestions.set(false);
+    this.carQuery.set('');
+  }
+
+  clearCar() {
+    this.selectedCar.set(null);
+    this.form.controls.carId.setValue(null);
+    this.carQuery.set('');
+  }
+
+  onCarBlur() {
+    setTimeout(() => this.showCarSuggestions.set(false), 150);
   }
 
   dateRangeInvalid() {
