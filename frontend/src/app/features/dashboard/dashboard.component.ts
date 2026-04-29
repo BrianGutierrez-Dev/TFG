@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
-import { LucideAngularModule, FileText, AlertTriangle, Wrench, Clock, OctagonAlert, CalendarClock, CircleDollarSign, CircleCheckBig } from 'lucide-angular';
+import { LucideAngularModule, FileText, AlertTriangle, Wrench, Clock, OctagonAlert, CalendarClock, CircleDollarSign, CircleCheckBig, Bell } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { CarsService } from '../../core/services/cars.service';
 import { RentalsService } from '../../core/services/rentals.service';
@@ -12,6 +12,13 @@ import { MaintenancesService } from '../../core/services/maintenances.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import type { Maintenance, RentalContract } from '../../core/models';
+
+interface InternalAlert {
+  label: string;
+  detail: string;
+  link: string;
+  tone: 'red' | 'amber' | 'blue' | 'emerald';
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -225,6 +232,27 @@ import type { Maintenance, RentalContract } from '../../core/models';
             </div>
           }
         </div>
+
+        <div class="card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <lucide-icon [img]="Bell" [size]="16" class="text-slate-500"></lucide-icon>
+            <h2 class="text-sm font-semibold text-gray-700">Alertas internas</h2>
+            <span class="ml-auto text-xs font-medium bg-slate-50 text-slate-600 px-2 py-0.5 rounded-full">{{ internalAlerts().length }}</span>
+          </div>
+          @if (internalAlerts().length === 0) {
+            <p class="text-sm text-gray-400 text-center py-6">No hay alertas pendientes</p>
+          } @else {
+            <div class="space-y-2">
+              @for (alert of internalAlerts(); track alert.label) {
+                <a [routerLink]="alert.link"
+                   [class]="'block rounded-lg border px-3 py-2.5 transition-colors hover:bg-gray-50 ' + alertClass(alert.tone)">
+                  <p class="text-sm font-medium">{{ alert.label }}</p>
+                  <p class="text-xs mt-0.5 opacity-80">{{ alert.detail }}</p>
+                </a>
+              }
+            </div>
+          }
+        </div>
       </div>
     }
   `,
@@ -245,6 +273,7 @@ export class DashboardComponent implements OnInit {
   readonly CalendarClock = CalendarClock;
   readonly CircleDollarSign = CircleDollarSign;
   readonly CircleCheckBig = CircleCheckBig;
+  readonly Bell = Bell;
 
   loading = signal(true);
   stats = signal({
@@ -259,6 +288,7 @@ export class DashboardComponent implements OnInit {
   upcomingRentals = signal<RentalContract[]>([]);
   overdueRentals = signal<RentalContract[]>([]);
   upcomingMaintenances = signal<Maintenance[]>([]);
+  internalAlerts = signal<InternalAlert[]>([]);
 
   ngOnInit() {
     forkJoin({
@@ -313,9 +343,50 @@ export class DashboardComponent implements OnInit {
         this.upcomingRentals.set(activeContracts.filter(r => r.endDate.slice(0, 10) > today && r.endDate.slice(0, 10) <= in3Days));
         this.overdueRentals.set(overdueContracts);
         this.upcomingMaintenances.set(nextMaintenances.slice(0, 8));
+        this.internalAlerts.set([
+          ...(overdueContracts.length > 0 ? [{
+            label: `${overdueContracts.length} contratos vencidos`,
+            detail: 'Revisar devoluciones fuera de plazo',
+            link: '/rentals',
+            tone: 'red' as const,
+          }] : []),
+          ...(this.activeRentals().length > 0 ? [{
+            label: `${this.activeRentals().length} devoluciones hoy`,
+            detail: 'Contratos que finalizan durante el día',
+            link: '/rentals',
+            tone: 'blue' as const,
+          }] : []),
+          ...(nextMaintenances.length > 0 ? [{
+            label: `${nextMaintenances.length} mantenimientos a 15 días`,
+            detail: 'Planificar taller y disponibilidad',
+            link: '/maintenances',
+            tone: 'emerald' as const,
+          }] : []),
+          ...(repairs.some(r => r.status === 'PENDING') ? [{
+            label: `${repairs.filter(r => r.status === 'PENDING').length} reparaciones pendientes`,
+            detail: 'Revisar trabajos todavía sin iniciar',
+            link: '/repairs',
+            tone: 'amber' as const,
+          }] : []),
+          ...(problematicClientIds.size > 0 ? [{
+            label: `${problematicClientIds.size} clientes en riesgo`,
+            detail: 'Blacklist o incidencias graves sin resolver',
+            link: '/blacklist',
+            tone: 'red' as const,
+          }] : []),
+        ]);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  alertClass(tone: InternalAlert['tone']) {
+    return {
+      red: 'border-red-100 text-red-700',
+      amber: 'border-amber-100 text-amber-700',
+      blue: 'border-blue-100 text-blue-700',
+      emerald: 'border-emerald-100 text-emerald-700',
+    }[tone];
   }
 }

@@ -23,6 +23,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 30/04/2026  | Alertas internas accionables en el dashboard                           | C -> [1.2.39]             |
 | 30/04/2026  | Mensajes de error visibles al guardar o dar de baja empleados y vehículos | C -> [1.2.38]           |
 | 30/04/2026  | Paginación y búsqueda desde backend en clientes, vehículos y contratos | C -> [1.2.37]             |
 | 30/04/2026  | Baja lógica de clientes y vehículos conservando historial              | C -> [1.2.36]             |
