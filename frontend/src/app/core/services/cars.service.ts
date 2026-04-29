@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { Car } from '../models';
 
-type CarPayload = Omit<Partial<Car>, 'clientId'> & { clientId?: number | null };
+type CarPayload = Omit<Partial<Car>, 'clientId'> & { clientId?: number };
 
 @Injectable({ providedIn: 'root' })
 export class CarsService {

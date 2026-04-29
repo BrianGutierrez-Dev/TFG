@@ -112,7 +112,7 @@ import type { Car as CarModel, Client } from '../../core/models';
                   <input formControlName="color" class="form-input" maxlength="30" placeholder="Blanco">
                 </div>
                 <div class="col-span-2 relative">
-                  <label class="form-label">Propietario</label>
+                  <label class="form-label">Propietario *</label>
                   @if (selectedClient()) {
                     <div class="form-input flex items-center justify-between cursor-default">
                       <span class="text-gray-900">{{ selectedClient()!.name }}
@@ -122,7 +122,8 @@ import type { Car as CarModel, Client } from '../../core/models';
                               class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
                     </div>
                   } @else {
-                    <input type="text" class="form-input" placeholder="Buscar por nombre o DNI (opcional)..."
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('clientId')"
+                           placeholder="Buscar por nombre o DNI..."
                            [value]="clientQuery()"
                            (input)="onClientSearch($any($event.target).value)"
                            (focus)="showClientSuggestions.set(true)"
@@ -218,7 +219,7 @@ export class CarListComponent implements OnInit {
     model: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^.*\S.*$/)]],
     year: [new Date().getFullYear(), [Validators.required, Validators.min(1900), Validators.max(this.maxVehicleYear)]],
     color: ['', Validators.maxLength(30)],
-    clientId: [null as number | null],
+    clientId: [null as number | null, Validators.required],
   });
 
   filtered = computed(() => {
@@ -306,13 +307,13 @@ export class CarListComponent implements OnInit {
     }
     this.saving.set(true);
     const v = this.form.value;
-    const data: Omit<Partial<CarModel>, 'clientId'> & { clientId?: number | null } = {
+    const data: Omit<Partial<CarModel>, 'clientId'> & { clientId: number } = {
       licensePlate: v.licensePlate!.replace(/\s/g, '').toUpperCase(),
       brand: v.brand!.trim(),
       model: v.model!.trim(),
       year: v.year!,
       color: v.color?.trim() || undefined,
-      clientId: v.clientId ?? null,
+      clientId: v.clientId!,
     };
     const op = this.editingId()
       ? this.carsService.update(this.editingId()!, data)

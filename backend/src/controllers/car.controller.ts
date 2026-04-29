@@ -37,8 +37,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     const trimmedModel = normalizeText(model);
     const trimmedColor = normalizeText(color);
 
-    if (!normalizedLicensePlate || !trimmedBrand || !trimmedModel || year == null) {
-      res.status(400).json({ message: 'Faltan campos obligatorios: licensePlate, brand, model, year' });
+    if (!normalizedLicensePlate || !trimmedBrand || !trimmedModel || year == null || clientId == null) {
+      res.status(400).json({ message: 'Faltan campos obligatorios: licensePlate, brand, model, year, clientId' });
       return;
     }
     if (!LICENSE_PLATE_REGEX.test(normalizedLicensePlate)) {
@@ -58,7 +58,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       res.status(400).json({ message: 'El año del vehículo no es válido' });
       return;
     }
-    if (clientId != null && !isPositiveInteger(clientId)) {
+    if (!isPositiveInteger(clientId)) {
       res.status(400).json({ message: 'El propietario seleccionado no es válido' });
       return;
     }
@@ -69,7 +69,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       model: trimmedModel,
       year: parsedYear,
       color: trimmedColor || undefined,
-      clientId: clientId == null ? undefined : Number(clientId),
+      clientId: Number(clientId),
     };
 
     res.status(201).json(await carService.create(req.body));
@@ -120,11 +120,11 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
       }
       data.color = trimmedColor || null;
     }
-    if ('clientId' in data && data.clientId != null && !isPositiveInteger(data.clientId)) {
+    if ('clientId' in data && !isPositiveInteger(data.clientId)) {
       res.status(400).json({ message: 'El propietario seleccionado no es válido' });
       return;
     }
-    if ('clientId' in data && data.clientId != null) data.clientId = Number(data.clientId);
+    if ('clientId' in data) data.clientId = Number(data.clientId);
 
     req.body = data;
     res.json(await carService.update(Number(req.params.id), req.body));

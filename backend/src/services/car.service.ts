@@ -29,15 +29,13 @@ export async function create(data: {
   model: string;
   year: number;
   color?: string;
-  clientId?: number;
+  clientId: number;
 }) {
   const exists = await prisma.car.findUnique({ where: { licensePlate: data.licensePlate } });
   if (exists) throw new AppError(409, 'Ya existe un vehículo con esa matrícula');
 
-  if (data.clientId) {
-    const client = await prisma.client.findUnique({ where: { id: data.clientId } });
-    if (!client) throw new AppError(404, 'Cliente no encontrado');
-  }
+  const client = await prisma.client.findUnique({ where: { id: data.clientId } });
+  if (!client) throw new AppError(404, 'Cliente no encontrado');
 
   return prisma.car.create({ data });
 }
@@ -50,7 +48,7 @@ export async function update(
     model: string;
     year: number;
     color: string | null;
-    clientId: number | null;
+    clientId: number;
   }>
 ) {
   const current = await getById(id);
@@ -60,7 +58,7 @@ export async function update(
     if (exists) throw new AppError(409, 'Ya existe un vehículo con esa matrícula');
   }
 
-  if (data.clientId) {
+  if (data.clientId !== undefined) {
     const client = await prisma.client.findUnique({ where: { id: data.clientId } });
     if (!client) throw new AppError(404, 'Cliente no encontrado');
   }
