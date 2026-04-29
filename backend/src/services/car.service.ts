@@ -49,11 +49,22 @@ export async function update(
     brand: string;
     model: string;
     year: number;
-    color: string;
+    color: string | null;
     clientId: number | null;
   }>
 ) {
-  await getById(id);
+  const current = await getById(id);
+
+  if (data.licensePlate && data.licensePlate !== current.licensePlate) {
+    const exists = await prisma.car.findUnique({ where: { licensePlate: data.licensePlate } });
+    if (exists) throw new AppError(409, 'Ya existe un vehículo con esa matrícula');
+  }
+
+  if (data.clientId) {
+    const client = await prisma.client.findUnique({ where: { id: data.clientId } });
+    if (!client) throw new AppError(404, 'Cliente no encontrado');
+  }
+
   return prisma.car.update({ where: { id }, data });
 }
 

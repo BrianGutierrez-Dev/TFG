@@ -145,7 +145,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Descripción *</label>
-                  <textarea formControlName="description" class="form-textarea" rows="3" placeholder="Describe la incidencia..."></textarea>
+                  <textarea formControlName="description" class="form-textarea" rows="3" maxlength="500" placeholder="Describe la incidencia..."></textarea>
                 </div>
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
@@ -202,7 +202,7 @@ export class IncidentListComponent implements OnInit {
     contractId: [null as number | null],
     type: ['OTHER' as IncidentType, Validators.required],
     severity: ['MEDIUM' as Severity, Validators.required],
-    description: ['', Validators.required],
+    description: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(500)]],
   });
 
   filtered = computed(() => {
@@ -234,7 +234,15 @@ export class IncidentListComponent implements OnInit {
   closeModal() { this.showModal.set(false); }
 
   save() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      Object.values(this.form.controls).forEach(control => {
+        if (control.invalid) {
+          control.markAsTouched();
+          control.markAsDirty();
+        }
+      });
+      return;
+    }
     this.saving.set(true);
     const v = this.form.value;
     this.incidentsService.create({

@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Eye, FileText, Search } from 'lucide-angular';
@@ -12,6 +12,15 @@ import { ButtonComponent } from '../../shared/components/button.component';
 import { ContractBadgeComponent } from '../../shared/components/badge.component';
 import type { RentalContract, Client, Car, ContractStatus } from '../../core/models';
 
+function contractDateRangeValidator(control: AbstractControl): ValidationErrors | null {
+  const startDate = control.get('startDate')?.value;
+  const endDate = control.get('endDate')?.value;
+
+  if (!startDate || !endDate) return null;
+
+  return new Date(endDate) <= new Date(startDate) ? { dateRange: true } : null;
+}
+
 @Component({
   selector: 'app-rental-list',
   standalone: true,
@@ -23,6 +32,13 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
         Nuevo contrato
       </app-button>
     </app-page-header>
+
+    @if (showModal() && dateRangeInvalid()) {
+      <div class="fixed left-4 top-4 z-[70] w-64 min-h-24 rounded-md border border-red-200 bg-red-50 p-4 shadow-xl">
+        <p class="text-sm font-semibold text-red-700">Fechas no válidas</p>
+        <p class="mt-1 text-sm leading-5 text-red-600">La fecha fin debe ser posterior a la fecha inicio.</p>
+      </div>
+    }
 
     <div class="flex items-center gap-3 mb-5">
       <div class="relative flex-1 max-w-xs">
@@ -115,15 +131,15 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
                 </div>
                 <div>
                   <label class="form-label">Fecha inicio *</label>
-                  <input formControlName="startDate" type="date" class="form-input">
+                  <input formControlName="startDate" type="date" class="form-input" [class.form-field-error]="dateRangeInvalid()">
                 </div>
                 <div>
                   <label class="form-label">Fecha fin *</label>
-                  <input formControlName="endDate" type="date" class="form-input">
+                  <input formControlName="endDate" type="date" class="form-input" [class.form-field-error]="dateRangeInvalid()">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Precio total (€) *</label>
-                  <input formControlName="totalPrice" type="number" step="0.01" class="form-input" placeholder="0.00">
+                  <input formControlName="totalPrice" type="number" min="0.01" step="0.01" class="form-input" placeholder="0.00">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Notas</label>
@@ -132,7 +148,7 @@ import type { RentalContract, Client, Car, ContractStatus } from '../../core/mod
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-                <app-button type="submit" [loading]="saving()">Crear contrato</app-button>
+                <app-button type="submit" [loading]="saving()" [disabled]="dateRangeInvalid()">Crear contrato</app-button>
               </div>
             </form>
           </div>
@@ -175,8 +191,10 @@ export class RentalListComponent implements OnInit {
     carId: [null as number | null, Validators.required],
     startDate: ['', Validators.required],
     endDate: ['', Validators.required],
-    totalPrice: [0, [Validators.required, Validators.min(0)]],
+    totalPrice: [null as number | null, [Validators.required, Validators.min(0.01)]],
     notes: [''],
+  }, {
+    validators: contractDateRangeValidator,
   });
 
   filtered = computed(() => {
@@ -199,7 +217,7 @@ export class RentalListComponent implements OnInit {
   }
 
   openCreate() {
-    this.form.reset({ totalPrice: 0 });
+    this.form.reset({ totalPrice: null });
     this.clientsService.getAll().subscribe({ next: data => this.clientOptions.set(data) });
     this.carsService.getAll().subscribe({ next: data => this.carOptions.set(data) });
     this.showModal.set(true);
@@ -207,8 +225,30 @@ export class RentalListComponent implements OnInit {
 
   closeModal() { this.showModal.set(false); }
 
+  dateRangeInvalid() {
+    return this.form.hasError('dateRange')
+      && !!this.form.get('startDate')?.value
+      && !!this.form.get('endDate')?.value;
+  }
+
   save() {
-    if (this.form.invalid) return;
+    if (this.dateRangeInvalid()) {
+      this.form.get('startDate')?.markAsTouched();
+      this.form.get('startDate')?.markAsDirty();
+      this.form.get('endDate')?.markAsTouched();
+      this.form.get('endDate')?.markAsDirty();
+      return;
+    }
+
+    if (this.form.invalid) {
+      Object.values(this.form.controls).forEach(control => {
+        if (control.invalid) {
+          control.markAsTouched();
+          control.markAsDirty();
+        }
+      });
+      return;
+    }
     this.saving.set(true);
     const v = this.form.value;
     this.rentalsService.create({

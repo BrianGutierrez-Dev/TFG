@@ -26,8 +26,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       res.status(400).json({ message: 'Faltan campos obligatorios: clientId, carId, startDate, endDate, totalPrice' });
       return;
     }
-    if (isNaN(Number(totalPrice)) || Number(totalPrice) < 0) {
-      res.status(400).json({ message: 'El precio total debe ser un número no negativo' });
+    if (isNaN(Number(totalPrice)) || Number(totalPrice) <= 0) {
+      res.status(400).json({ message: 'El precio total debe ser mayor que 0' });
       return;
     }
     if (isNaN(Date.parse(startDate)) || isNaN(Date.parse(endDate))) {

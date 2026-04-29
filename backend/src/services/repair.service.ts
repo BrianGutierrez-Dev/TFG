@@ -23,7 +23,8 @@ export async function getById(id: number) {
 export async function create(data: {
   carId: number;
   description: string;
-  cost?: number;
+  cost: number;
+  status?: RepairStatus;
   startDate?: string;
   endDate?: string;
 }) {
