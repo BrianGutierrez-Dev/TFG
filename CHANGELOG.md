@@ -23,7 +23,14 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
-| 28/04/2026  | Búsqueda por DNI en el listado de incidencias                          | C -> [1.2.21]             |
+| 29/04/2026  | Paginación de incidencias, mantenimiento, vehículos y reparaciones cada 10 registros | C -> [1.2.28] |
+| 29/04/2026  | Paginación de clientes y contratos cada 10 registros                   | C -> [1.2.27]             |
+| 29/04/2026  | Gestión de baja y despido de empleados con bloqueo de acceso           | C -> [1.2.26]             |
+| 29/04/2026  | Cliente obligatorio marcado visualmente en nueva incidencia            | C -> [1.2.25]             |
+| 29/04/2026  | Cliente obligatorio marcado visualmente en nuevo contrato              | C -> [1.2.24]             |
+| 29/04/2026  | Descripción obligatoria con mínimo de 3 caracteres en mantenimientos   | C -> [1.2.23]             |
+| 29/04/2026  | Propietario obligatorio al crear o editar vehículos                    | C -> [1.2.22]             |
+| 29/04/2026  | Filtro de prioridad en incidencias                                     | C -> [1.2.21]             |
 | 28/04/2026  | Búsqueda por DNI en el listado de contratos                            | C -> [1.2.20]             |
 | 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en reparaciones            | C -> [1.2.19]             |
 | 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en mantenimientos          | C -> [1.2.18]             |
@@ -53,3 +60,4 @@ Nombre: Carlos
 | 27/04/2026  | Permiso de `curl` añadido a `settings.local.json`                      | add curl permission       |
 | 27/04/2026  | Migración a la última versión de Angular                               | migrado Angular           |
 | 23/04/2026  | Commit inicial del proyecto                                            | Initial commit            |
+| 29/04/2026  | Merge -> [Resolución de conflictos con rama de Brian]                 | Merge -> [Resolución de conflictos con rama de Brian] |
