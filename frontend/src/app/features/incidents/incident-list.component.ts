@@ -26,12 +26,12 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
     <div class="flex items-center gap-3 mb-5 flex-wrap">
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por cliente, DNI, descripción, tipo...">
       </div>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('all')">Todas</button>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('unresolved')">Pendientes</button>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'resolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('resolved')">Resueltas</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('all')">Todas</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('unresolved')">Pendientes</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'resolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('resolved')">Resueltas</button>
       <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 ml-1">Prioridad</span>
       <button [class]="'filter-tab ' + (severityFilter() === 'LOW' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('LOW')">Baja</button>
       <button [class]="'filter-tab ' + (severityFilter() === 'MEDIUM' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('MEDIUM')">Media</button>
@@ -56,7 +56,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             </tr>
           </thead>
           <tbody>
-            @for (inc of filtered(); track inc.id) {
+            @for (inc of paginated(); track inc.id) {
               <tr>
                 <td>
                   <p class="font-medium text-gray-900">{{ inc.client.name }}</p>
@@ -97,6 +97,26 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -235,6 +255,8 @@ export class IncidentListComponent implements OnInit {
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
   submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
 
   clientQuery = signal('');
   showClientSuggestions = signal(false);
@@ -266,8 +288,33 @@ export class IncidentListComponent implements OnInit {
       return matchSearch && matchResolved && matchSeverity;
     });
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() { this.load(); }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  setResolvedFilter(filter: 'all' | 'resolved' | 'unresolved') {
+    this.resolvedFilter.set(filter);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
+  }
 
   load() {
     this.incidentsService.getAll().subscribe({
@@ -296,6 +343,7 @@ export class IncidentListComponent implements OnInit {
 
   toggleSeverity(severity: Severity) {
     this.severityFilter.set(this.severityFilter() === severity ? null : severity);
+    this.currentPage.set(1);
   }
 
   onClientSearch(value: string) {
