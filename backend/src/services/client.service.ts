@@ -1,9 +1,43 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
+import { pageMeta, PaginationOptions } from '../utils/pagination';
 
-export async function getAll(filters?: { isBlacklisted?: boolean }) {
+export async function getAll(filters?: { isBlacklisted?: boolean; isActive?: boolean }, pagination?: PaginationOptions) {
+  const where = {
+    isActive: true,
+    ...filters,
+    ...(pagination?.search ? {
+      OR: [
+        { name: { contains: pagination.search, mode: 'insensitive' as const } },
+        { dni: { contains: pagination.search, mode: 'insensitive' as const } },
+        { email: { contains: pagination.search, mode: 'insensitive' as const } },
+        { phone: { contains: pagination.search, mode: 'insensitive' as const } },
+      ],
+    } : {}),
+  };
+
+  if (pagination?.page && pagination.limit) {
+    const [items, total] = await prisma.$transaction([
+      prisma.client.findMany({
+        where,
+        include: {
+          _count: { select: { incidents: true, contracts: true, cars: true } },
+          ...(filters?.isBlacklisted === true
+            ? { incidents: { orderBy: { createdAt: 'desc' as const } } }
+            : {}),
+        },
+        orderBy: { name: 'asc' },
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      }),
+      prisma.client.count({ where }),
+    ]);
+
+    return { items, meta: pageMeta(total, pagination.page, pagination.limit) };
+  }
+
   return prisma.client.findMany({
-    where: filters,
+    where,
     include: {
       _count: { select: { incidents: true, contracts: true, cars: true } },
       ...(filters?.isBlacklisted === true
@@ -57,6 +91,7 @@ export async function update(
     notes: string;
     isBlacklisted: boolean;
     blacklistReason: string;
+    isActive: boolean;
   }>
 ) {
   await getById(id);
@@ -77,34 +112,16 @@ export async function update(
 }
 
 export async function remove(id: number) {
-  await getById(id);
-  const related = await prisma.client.findUnique({
+  const client = await getById(id);
+  if (!client.isActive) return;
+
+  await prisma.client.update({
     where: { id },
-    select: {
-      _count: {
-        select: {
-          cars: true,
-          contracts: true,
-          incidents: true,
-        },
-      },
+    data: {
+      isActive: false,
+      deactivatedAt: new Date(),
     },
   });
-
-  const hasHistory = !!related && (
-    related._count.cars > 0
-    || related._count.contracts > 0
-    || related._count.incidents > 0
-  );
-
-  if (hasHistory) {
-    throw new AppError(
-      409,
-      'No se puede eliminar el cliente porque tiene vehículos, contratos o incidencias asociados'
-    );
-  }
-
-  await prisma.client.delete({ where: { id } });
 }
 
 export async function getClientHistory(id: number) {

@@ -85,10 +85,10 @@ import type { Client } from '../../core/models';
             }
           </tbody>
         </table>
-        @if (filtered().length > pageSize) {
+        @if (totalItems() > pageSize) {
           <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
             <p class="text-sm text-gray-500">
-              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ totalItems() }}
             </p>
             <div class="flex items-center gap-2">
               <button type="button" class="filter-tab filter-tab-inactive"
@@ -251,14 +251,14 @@ import type { Client } from '../../core/models';
       <div class="modal-overlay">
         <div class="modal-inner">
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar cliente?</h2>
-            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja cliente?</h2>
+            <p class="text-sm text-gray-500 mb-6">Se ocultará de los listados activos, pero se conservará su historial.</p>
             @if (deleteError()) {
               <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
             }
             <div class="flex justify-end gap-3">
               <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
-              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
         </div>
@@ -298,6 +298,7 @@ export class ClientListComponent implements OnInit {
   submitted = signal(false);
   readonly pageSize = 10;
   currentPage = signal(1);
+  totalItems = signal(0);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -311,19 +312,14 @@ export class ClientListComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
-    return this.clients().filter(c => {
-      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q);
-      return matchSearch;
-    });
+    return this.clients();
   });
-  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize)));
   paginated = computed(() => {
-    const start = (this.currentPage() - 1) * this.pageSize;
-    return this.filtered().slice(start, start + this.pageSize);
+    return this.clients();
   });
-  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
-  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
+  pageStart = computed(() => this.totalItems() === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.totalItems()));
 
   ngOnInit() { this.load(); }
 
@@ -332,19 +328,26 @@ export class ClientListComponent implements OnInit {
   setSearch(value: string) {
     this.search.set(value);
     this.currentPage.set(1);
+    this.load();
   }
 
   previousPage() {
     this.currentPage.update(page => Math.max(1, page - 1));
+    this.load();
   }
 
   nextPage() {
     this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
+    this.load();
   }
 
   load() {
-    this.clientsService.getAll().subscribe({
-      next: data => { this.clients.set(data); this.loading.set(false); },
+    this.clientsService.getPage({ page: this.currentPage(), limit: this.pageSize, search: this.search() || undefined }).subscribe({
+      next: data => {
+        this.clients.set(data.items);
+        this.totalItems.set(data.meta.total);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
     });
   }
@@ -482,7 +485,7 @@ export class ClientListComponent implements OnInit {
       next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); },
       error: (err) => {
         this.deleting.set(false);
-        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar el cliente');
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido dar de baja el cliente');
       },
     });
   }

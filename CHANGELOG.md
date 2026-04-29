@@ -23,6 +23,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 30/04/2026  | Baja lógica de clientes y vehículos conservando historial              | C -> [1.2.36]             |
 | 30/04/2026  | Baja lógica de empleados conservando historial                         | C -> [1.2.35]             |
 | 29/04/2026  | Marcado automático de contratos vencidos como OVERDUE al iniciar y consultar contratos | C -> [1.2.34] |
 | 29/04/2026  | Dashboard ejecutivo con ingresos mensuales, disponibilidad, reparaciones, clientes problemáticos y mantenimientos a 15 días | C -> [1.2.33] |

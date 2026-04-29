@@ -6,6 +6,16 @@ export type IncidentType = 'PAYMENT' | 'DAMAGE' | 'NOT_RETURNED' | 'LATE_RETURN'
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RepairStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export interface Employee {
   id: number;
   email: string;
@@ -30,6 +40,8 @@ export interface Client {
   blacklistedAt?: string;
   wasBlacklisted?: boolean;
   notes?: string;
+  isActive: boolean;
+  deactivatedAt?: string;
   createdAt: string;
   updatedAt: string;
   _count?: { incidents: number; contracts: number; cars: number };
@@ -46,6 +58,8 @@ export interface Car {
   color?: string;
   clientId?: number;
   client?: Pick<Client, 'id' | 'name' | 'dni'>;
+  isActive: boolean;
+  deactivatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

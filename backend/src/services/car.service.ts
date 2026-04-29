@@ -1,9 +1,39 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
+import { pageMeta, PaginationOptions } from '../utils/pagination';
 
-export async function getAll(clientId?: number) {
+export async function getAll(clientId?: number, pagination?: PaginationOptions) {
+  const where = {
+    isActive: true,
+    ...(clientId ? { clientId } : {}),
+    ...(pagination?.search ? {
+      OR: [
+        { licensePlate: { contains: pagination.search, mode: 'insensitive' as const } },
+        { brand: { contains: pagination.search, mode: 'insensitive' as const } },
+        { model: { contains: pagination.search, mode: 'insensitive' as const } },
+        { color: { contains: pagination.search, mode: 'insensitive' as const } },
+        { client: { name: { contains: pagination.search, mode: 'insensitive' as const } } },
+      ],
+    } : {}),
+  };
+
+  if (pagination?.page && pagination.limit) {
+    const [items, total] = await prisma.$transaction([
+      prisma.car.findMany({
+        where,
+        include: { client: { select: { id: true, name: true, dni: true } } },
+        orderBy: { brand: 'asc' },
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      }),
+      prisma.car.count({ where }),
+    ]);
+
+    return { items, meta: pageMeta(total, pagination.page, pagination.limit) };
+  }
+
   return prisma.car.findMany({
-    where: clientId ? { clientId } : undefined,
+    where,
     include: { client: { select: { id: true, name: true, dni: true } } },
     orderBy: { brand: 'asc' },
   });
@@ -36,6 +66,7 @@ export async function create(data: {
 
   const client = await prisma.client.findUnique({ where: { id: data.clientId } });
   if (!client) throw new AppError(404, 'Cliente no encontrado');
+  if (!client.isActive) throw new AppError(400, 'No se puede asignar un vehículo a un cliente dado de baja');
 
   return prisma.car.create({ data });
 }
@@ -49,6 +80,7 @@ export async function update(
     year: number;
     color: string | null;
     clientId: number;
+    isActive: boolean;
   }>
 ) {
   const current = await getById(id);
@@ -61,38 +93,21 @@ export async function update(
   if (data.clientId !== undefined) {
     const client = await prisma.client.findUnique({ where: { id: data.clientId } });
     if (!client) throw new AppError(404, 'Cliente no encontrado');
+    if (!client.isActive) throw new AppError(400, 'No se puede asignar un vehículo a un cliente dado de baja');
   }
 
   return prisma.car.update({ where: { id }, data });
 }
 
 export async function remove(id: number) {
-  await getById(id);
-  const related = await prisma.car.findUnique({
+  const car = await getById(id);
+  if (!car.isActive) return;
+
+  await prisma.car.update({
     where: { id },
-    select: {
-      _count: {
-        select: {
-          contracts: true,
-          maintenances: true,
-          repairs: true,
-        },
-      },
+    data: {
+      isActive: false,
+      deactivatedAt: new Date(),
     },
   });
-
-  const hasHistory = !!related && (
-    related._count.contracts > 0
-    || related._count.maintenances > 0
-    || related._count.repairs > 0
-  );
-
-  if (hasHistory) {
-    throw new AppError(
-      409,
-      'No se puede eliminar el vehículo porque tiene contratos, mantenimientos o reparaciones asociados'
-    );
-  }
-
-  await prisma.car.delete({ where: { id } });
 }
