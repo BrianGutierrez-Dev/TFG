@@ -125,7 +125,8 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                               class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
                     </div>
                   } @else {
-                    <input type="text" class="form-input" placeholder="Buscar por nombre o DNI..."
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('clientId')"
+                           placeholder="Buscar por nombre o DNI..."
                            [value]="clientQuery()"
                            (input)="onClientSearch($any($event.target).value)"
                            (focus)="showClientSuggestions.set(true)"
@@ -237,6 +238,7 @@ export class RentalListComponent implements OnInit {
   showModal = signal(false);
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
+  submitted = signal(false);
 
   clientQuery = signal('');
   showClientSuggestions = signal(false);
@@ -281,6 +283,7 @@ export class RentalListComponent implements OnInit {
 
   openCreate() {
     this.form.reset({ totalPrice: null });
+    this.submitted.set(false);
     this.selectedClient.set(null);
     this.clientQuery.set('');
     this.showClientSuggestions.set(false);
@@ -291,6 +294,7 @@ export class RentalListComponent implements OnInit {
 
   closeModal() {
     this.showModal.set(false);
+    this.submitted.set(false);
     this.selectedClient.set(null);
     this.clientQuery.set('');
   }
@@ -325,7 +329,14 @@ export class RentalListComponent implements OnInit {
       && !!this.form.get('endDate')?.value;
   }
 
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
   save() {
+    this.submitted.set(true);
+
     if (this.dateRangeInvalid()) {
       this.form.get('startDate')?.markAsTouched();
       this.form.get('startDate')?.markAsDirty();
@@ -335,12 +346,8 @@ export class RentalListComponent implements OnInit {
     }
 
     if (this.form.invalid) {
-      Object.values(this.form.controls).forEach(control => {
-        if (control.invalid) {
-          control.markAsTouched();
-          control.markAsDirty();
-        }
-      });
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
     this.saving.set(true);
