@@ -32,6 +32,11 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
       <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('all')">Todas</button>
       <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('unresolved')">Pendientes</button>
       <button [class]="'filter-tab ' + (resolvedFilter() === 'resolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('resolved')">Resueltas</button>
+      <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 ml-1">Prioridad</span>
+      <button [class]="'filter-tab ' + (severityFilter() === 'LOW' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('LOW')">Baja</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'MEDIUM' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('MEDIUM')">Media</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'HIGH' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('HIGH')">Alta</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'CRITICAL' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('CRITICAL')">Crítica</button>
     </div>
 
     @if (loading()) {
@@ -43,7 +48,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             <tr>
               <th>Cliente</th>
               <th>Tipo</th>
-              <th>Gravedad</th>
+              <th>Prioridad</th>
               <th>Descripción</th>
               <th>Estado</th>
               <th>Fecha</th>
@@ -162,7 +167,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
                   </select>
                 </div>
                 <div>
-                  <label class="form-label">Gravedad *</label>
+                  <label class="form-label">Prioridad *</label>
                   <select formControlName="severity" class="form-select">
                     <option value="LOW">Baja</option>
                     <option value="MEDIUM">Media</option>
@@ -224,6 +229,7 @@ export class IncidentListComponent implements OnInit {
   rentalOptions = signal<RentalContract[]>([]);
   search = signal('');
   resolvedFilter = signal<'all' | 'resolved' | 'unresolved'>('all');
+  severityFilter = signal<Severity | null>(null);
   showModal = signal(false);
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
@@ -250,10 +256,12 @@ export class IncidentListComponent implements OnInit {
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     const r = this.resolvedFilter();
+    const s = this.severityFilter();
     return this.incidents().filter(i => {
       const matchSearch = !q || i.client.name.toLowerCase().includes(q) || i.client.dni.toLowerCase().includes(q) || i.description.toLowerCase().includes(q) || i.type.toLowerCase().includes(q);
       const matchResolved = r === 'all' || (r === 'resolved' && i.resolved) || (r === 'unresolved' && !i.resolved);
-      return matchSearch && matchResolved;
+      const matchSeverity = !s || i.severity === s;
+      return matchSearch && matchResolved && matchSeverity;
     });
   });
 
@@ -280,6 +288,10 @@ export class IncidentListComponent implements OnInit {
     this.showModal.set(false);
     this.selectedClient.set(null);
     this.clientQuery.set('');
+  }
+
+  toggleSeverity(severity: Severity) {
+    this.severityFilter.set(this.severityFilter() === severity ? null : severity);
   }
 
   onClientSearch(value: string) {
