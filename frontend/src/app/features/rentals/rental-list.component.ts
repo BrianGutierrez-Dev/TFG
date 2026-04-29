@@ -176,9 +176,14 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                   <select formControlName="carId" class="form-select">
                     <option [ngValue]="null" disabled>Seleccionar vehículo</option>
                     @for (c of carOptions(); track c.id) {
-                      <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                      <option [ngValue]="c.id" [disabled]="isCarUnavailable(c.id)">
+                        {{ c.licensePlate }} — {{ c.brand }} {{ c.model }}{{ isCarUnavailable(c.id) ? ' (no disponible)' : '' }}
+                      </option>
                     }
                   </select>
+                  @if (selectedCarUnavailable()) {
+                    <p class="mt-2 text-xs text-red-600">{{ selectedCarAvailabilityMessage() }}</p>
+                  }
                 </div>
                 <div>
                   <label class="form-label">Fecha inicio *</label>
@@ -197,9 +202,12 @@ function contractDateRangeValidator(control: AbstractControl): ValidationErrors 
                   <textarea formControlName="notes" class="form-textarea" rows="2" placeholder="Observaciones..."></textarea>
                 </div>
               </div>
+              @if (createError()) {
+                <p class="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ createError() }}</p>
+              }
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
-                <app-button type="submit" [loading]="saving()" [disabled]="dateRangeInvalid()">Crear contrato</app-button>
+                <app-button type="submit" [loading]="saving()" [disabled]="dateRangeInvalid() || selectedCarUnavailable()">Crear contrato</app-button>
               </div>
             </form>
           </div>
@@ -258,6 +266,7 @@ export class RentalListComponent implements OnInit {
   showModal = signal(false);
   deleteId = signal<number | null>(null);
   deleteError = signal<string | null>(null);
+  createError = signal<string | null>(null);
   submitted = signal(false);
   readonly pageSize = 10;
   currentPage = signal(1);
@@ -301,7 +310,10 @@ export class RentalListComponent implements OnInit {
   pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
   pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.form.valueChanges.subscribe(() => this.createError.set(null));
+  }
 
   setSearch(value: string) {
     this.search.set(value);
@@ -330,6 +342,7 @@ export class RentalListComponent implements OnInit {
 
   openCreate() {
     this.form.reset({ totalPrice: null });
+    this.createError.set(null);
     this.submitted.set(false);
     this.selectedClient.set(null);
     this.clientQuery.set('');
@@ -341,6 +354,7 @@ export class RentalListComponent implements OnInit {
 
   closeModal() {
     this.showModal.set(false);
+    this.createError.set(null);
     this.submitted.set(false);
     this.selectedClient.set(null);
     this.clientQuery.set('');
@@ -376,6 +390,40 @@ export class RentalListComponent implements OnInit {
       && !!this.form.get('endDate')?.value;
   }
 
+  isCarUnavailable(carId: number) {
+    return this.findCarConflict(carId) !== null;
+  }
+
+  selectedCarUnavailable() {
+    const carId = this.form.controls.carId.value;
+    return carId ? this.isCarUnavailable(carId) : false;
+  }
+
+  selectedCarAvailabilityMessage() {
+    const carId = this.form.controls.carId.value;
+    const conflict = carId ? this.findCarConflict(carId) : null;
+    if (!conflict) return '';
+    const start = new Date(conflict.startDate).toLocaleDateString('es-ES');
+    const end = new Date(conflict.endDate).toLocaleDateString('es-ES');
+    return `No disponible: coincide con el contrato #${conflict.id} de ${conflict.client.name} (${start} - ${end}).`;
+  }
+
+  private findCarConflict(carId: number) {
+    const startDate = this.form.controls.startDate.value;
+    const endDate = this.form.controls.endDate.value;
+    if (!startDate || !endDate || this.dateRangeInvalid()) return null;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    return this.rentals().find(r =>
+      r.carId === carId
+      && (r.status === 'ACTIVE' || r.status === 'OVERDUE')
+      && start < new Date(r.endDate)
+      && end > new Date(r.startDate)
+    ) ?? null;
+  }
+
   isInvalid(controlName: keyof typeof this.form.controls) {
     const control = this.form.controls[controlName];
     return control.invalid && (control.touched || control.dirty || this.submitted());
@@ -397,6 +445,10 @@ export class RentalListComponent implements OnInit {
       Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
+    if (this.selectedCarUnavailable()) {
+      this.createError.set(this.selectedCarAvailabilityMessage());
+      return;
+    }
     this.saving.set(true);
     const v = this.form.value;
     this.rentalsService.create({
@@ -408,7 +460,10 @@ export class RentalListComponent implements OnInit {
       notes: v.notes || undefined,
     }).subscribe({
       next: () => { this.saving.set(false); this.closeModal(); this.load(); },
-      error: () => this.saving.set(false),
+      error: (err) => {
+        this.saving.set(false);
+        this.createError.set(err?.error?.message ?? 'No se ha podido crear el contrato');
+      },
     });
   }
 

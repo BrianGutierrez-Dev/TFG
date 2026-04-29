@@ -9,6 +9,10 @@ const contractInclude = {
   incidents: true,
 };
 
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('es-ES').format(date);
+}
+
 export async function getAll(filters?: { status?: ContractStatus; clientId?: number; carId?: number }) {
   return prisma.rentalContract.findMany({
     where: filters,
@@ -34,6 +38,9 @@ export async function create(data: {
   totalPrice: number;
   notes?: string;
 }) {
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+
   const client = await prisma.client.findUnique({ where: { id: data.clientId } });
   if (!client) throw new AppError(404, 'Cliente no encontrado');
   if (client.isBlacklisted) throw new AppError(403, 'El cliente está en lista negra y no puede crear nuevos contratos');
@@ -45,15 +52,26 @@ export async function create(data: {
     where: {
       carId: data.carId,
       status: { in: ['ACTIVE', 'OVERDUE'] },
+      startDate: { lt: endDate },
+      endDate: { gt: startDate },
     },
+    include: {
+      client: { select: { name: true, dni: true } },
+    },
+    orderBy: { startDate: 'asc' },
   });
-  if (overlap) throw new AppError(409, 'El vehículo ya tiene un contrato activo o vencido sin cerrar');
+  if (overlap) {
+    throw new AppError(
+      409,
+      `El vehículo no está disponible: coincide con el contrato #${overlap.id} de ${overlap.client.name} (${formatDate(overlap.startDate)} - ${formatDate(overlap.endDate)})`
+    );
+  }
 
   return prisma.rentalContract.create({
     data: {
       ...data,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
+      startDate,
+      endDate,
     },
     include: contractInclude,
   });
