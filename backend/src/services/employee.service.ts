@@ -105,6 +105,15 @@ export async function update(
 }
 
 export async function remove(id: number) {
-  await getById(id);
-  await prisma.employee.delete({ where: { id } });
+  const employee = await getById(id);
+  if (!employee.isActive) return;
+
+  await prisma.employee.update({
+    where: { id },
+    data: {
+      isActive: false,
+      deactivatedAt: new Date(),
+      terminationReason: 'BAJA',
+    },
+  });
 }

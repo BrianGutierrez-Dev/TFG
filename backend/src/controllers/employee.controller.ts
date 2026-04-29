@@ -33,6 +33,10 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
 
 export async function remove(req: AuthRequest, res: Response, next: NextFunction) {
   try {
+    if (Number(req.params.id) === req.employee?.id) {
+      res.status(400).json({ message: 'No puedes darte de baja a ti mismo' });
+      return;
+    }
     await employeeService.remove(Number(req.params.id));
     res.status(204).send();
   } catch (err) { next(err); }

@@ -136,11 +136,11 @@ type EmployeeAccessStatus = 'ACTIVE' | 'BAJA' | 'DESPEDIDO';
       <div class="modal-overlay">
         <div class="modal-inner">
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar empleado?</h2>
-            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja empleado?</h2>
+            <p class="text-sm text-gray-500 mb-6">Se bloqueará su acceso, pero se conservará su historial.</p>
             <div class="flex justify-end gap-3">
               <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
         </div>
