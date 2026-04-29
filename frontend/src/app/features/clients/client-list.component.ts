@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Pencil, Trash2, ShieldAlert, ShieldOff, Users, Search } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -11,7 +11,7 @@ import type { Client } from '../../core/models';
 @Component({
   selector: 'app-client-list',
   standalone: true,
-  imports: [ReactiveFormsModule, FormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
+  imports: [ReactiveFormsModule, LucideAngularModule, SpinnerComponent, PageHeaderComponent, ButtonComponent, BlacklistedBadgeComponent],
   template: `
     <app-page-header title="Clientes" [subtitle]="clients().length + ' registros'">
       <app-button (clicked)="openCreate()">
@@ -164,11 +164,16 @@ import type { Client } from '../../core/models';
               </p>
               <div>
                 <label class="form-label">Razón *</label>
-                <textarea [(ngModel)]="blacklistReasonText" class="form-textarea" rows="3"
-                          placeholder="Describe el motivo del bloqueo..."></textarea>
+                <textarea [value]="blacklistReasonText()"
+                          (input)="blacklistReasonText.set($any($event.target).value); blacklistReasonError.set(false)"
+                          [class]="'form-textarea ' + (blacklistReasonError() ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : '')"
+                          rows="3" placeholder="Describe el motivo del bloqueo..."></textarea>
+                @if (blacklistReasonError()) {
+                  <p class="text-xs text-red-500 mt-1">La razón es obligatoria</p>
+                }
               </div>
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-                <app-button variant="secondary" (clicked)="blacklistTarget.set(null)">Cancelar</app-button>
+                <app-button variant="secondary" (clicked)="blacklistTarget.set(null); blacklistReasonError.set(false)">Cancelar</app-button>
                 <app-button variant="danger" [loading]="blacklisting()" (clicked)="confirmAddToBlacklist()">
                   Añadir a Blacklist
                 </app-button>
@@ -301,21 +306,27 @@ export class ClientListComponent implements OnInit {
         ),
       });
     } else {
-      this.blacklistReasonText = '';
+      this.blacklistReasonText.set('');
+      this.blacklistReasonError.set(false);
       this.blacklistTarget.set(c);
     }
   }
 
   confirmAddToBlacklist() {
     const c = this.blacklistTarget();
-    if (!c || !this.blacklistReasonText.trim()) return;
+    if (!c) return;
+    if (!this.blacklistReasonText().trim()) {
+      this.blacklistReasonError.set(true);
+      return;
+    }
+    const reason = this.blacklistReasonText().trim();
     this.blacklisting.set(true);
-    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } as any).subscribe({
-      next: (updated) => {
+    this.clientsService.update(c.id, { isBlacklisted: true, blacklistReason: reason } as any).subscribe({
+      next: () => {
         this.blacklisting.set(false);
         this.blacklistTarget.set(null);
         this.clients.update(list =>
-          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: this.blacklistReasonText.trim() } : x)
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: reason } : x)
         );
       },
       error: () => this.blacklisting.set(false),
