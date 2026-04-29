@@ -23,6 +23,7 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 29/04/2026  | Dashboard ejecutivo con ingresos mensuales, disponibilidad, reparaciones, clientes problemáticos y mantenimientos a 15 días | C -> [1.2.33] |
 | 29/04/2026  | Buscador de vehículo por matrícula o modelo con bloqueo visual de no disponibles en contratos | C -> [1.2.32] |
 | 29/04/2026  | Validación de disponibilidad real de vehículos por solape de fechas en contratos | C -> [1.2.31] |
 | 29/04/2026  | Renombrado de métricas del dashboard a incidencias activas y reparaciones pendientes | C -> [1.2.30] |
