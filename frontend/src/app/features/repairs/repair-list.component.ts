@@ -3,6 +3,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Pencil, Trash2, Hammer, Search } from 'lucide-angular';
 import { RepairsService } from '../../core/services/repairs.service';
+import { ToastService } from '../../core/services/toast.service';
 import { CarsService } from '../../core/services/cars.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
@@ -179,6 +180,7 @@ export class RepairListComponent implements OnInit {
   private repairsService = inject(RepairsService);
   private carsService = inject(CarsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Pencil = Pencil;
@@ -290,11 +292,12 @@ export class RepairListComponent implements OnInit {
       startDate: raw.startDate || undefined,
       endDate: raw.endDate || undefined,
     };
+    const isEdit = !!this.editingId();
     const op = this.editingId()
       ? this.repairsService.update(this.editingId()!, v)
       : this.repairsService.create(v);
     op.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success(isEdit ? 'Reparación actualizada correctamente' : 'Reparación creada correctamente'); },
       error: () => this.saving.set(false),
     });
   }
@@ -305,7 +308,7 @@ export class RepairListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.repairsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Reparación eliminada correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

@@ -1,6 +1,6 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
-import { CarCondition, FuelLevel } from '@prisma/client';
+import { CarCondition, FuelLevel, Prisma } from '@prisma/client';
 
 export async function getAll() {
   return prisma.carReturn.findMany({
@@ -56,76 +56,77 @@ export async function create(
   if (contract.carReturn) throw new AppError(409, 'Este contrato ya tiene un registro de devolución');
   if (contract.status === 'CANCELLED') throw new AppError(400, 'El contrato está cancelado');
   if (contract.status === 'COMPLETED') throw new AppError(400, 'El contrato ya está completado');
+  if (data.damagesFound && !data.damageDescription?.trim())
+    throw new AppError(400, 'La descripción de daños es obligatoria cuando se indican daños');
 
   const returnDate = data.returnDate ? new Date(data.returnDate) : new Date();
   const isOnTime = returnDate <= contract.endDate;
 
-  const carReturn = await prisma.carReturn.create({
-    data: {
-      contractId: data.contractId,
-      employeeId,
-      returnDate,
-      onTime: isOnTime,
-      condition: data.condition,
-      fuelLevel: data.fuelLevel,
-      damagesFound: data.damagesFound,
-      damageDescription: data.damageDescription,
-      notes: data.notes,
-    },
-    include: {
-      contract: { include: { client: true, car: true } },
-      employee: { select: { id: true, name: true } },
-    },
+  return prisma.$transaction(async (tx) => {
+    const carReturn = await tx.carReturn.create({
+      data: {
+        contractId: data.contractId,
+        employeeId,
+        returnDate,
+        onTime: isOnTime,
+        condition: data.condition,
+        fuelLevel: data.fuelLevel,
+        damagesFound: data.damagesFound,
+        damageDescription: data.damageDescription,
+        notes: data.notes,
+      },
+      include: {
+        contract: { include: { client: true, car: true } },
+        employee: { select: { id: true, name: true } },
+      },
+    });
+
+    await tx.rentalContract.update({
+      where: { id: data.contractId },
+      data: { status: 'COMPLETED' },
+    });
+
+    const incidentPromises: Promise<unknown>[] = [];
+
+    if (!isOnTime) {
+      incidentPromises.push(
+        tx.incident.create({
+          data: {
+            clientId: contract.clientId,
+            contractId: data.contractId,
+            type: 'LATE_RETURN',
+            description: `Devolución tardía. Fecha acordada: ${contract.endDate.toLocaleDateString()}. Devuelto: ${returnDate.toLocaleDateString()}.`,
+            severity: 'MEDIUM',
+          },
+        })
+      );
+    }
+
+    if (data.damagesFound && data.damageDescription) {
+      incidentPromises.push(
+        tx.incident.create({
+          data: {
+            clientId: contract.clientId,
+            contractId: data.contractId,
+            type: 'DAMAGE',
+            description: data.damageDescription,
+            severity: 'HIGH',
+          },
+        })
+      );
+    }
+
+    if (incidentPromises.length > 0) {
+      await Promise.all(incidentPromises);
+      await evaluateBlacklist(contract.clientId, tx);
+    }
+
+    return carReturn;
   });
-
-  // Cerrar el contrato automáticamente
-  await prisma.rentalContract.update({
-    where: { id: data.contractId },
-    data: { status: 'COMPLETED' },
-  });
-
-  // Si hay daños o devolución tardía, crear incidencia automáticamente
-  const incidentPromises: Promise<unknown>[] = [];
-
-  if (!isOnTime) {
-    incidentPromises.push(
-      prisma.incident.create({
-        data: {
-          clientId: contract.clientId,
-          contractId: data.contractId,
-          type: 'LATE_RETURN',
-          description: `Devolución tardía. Fecha acordada: ${contract.endDate.toLocaleDateString()}. Devuelto: ${returnDate.toLocaleDateString()}.`,
-          severity: 'MEDIUM',
-        },
-      })
-    );
-  }
-
-  if (data.damagesFound && data.damageDescription) {
-    incidentPromises.push(
-      prisma.incident.create({
-        data: {
-          clientId: contract.clientId,
-          contractId: data.contractId,
-          type: 'DAMAGE',
-          description: data.damageDescription,
-          severity: 'HIGH',
-        },
-      })
-    );
-  }
-
-  if (incidentPromises.length > 0) {
-    await Promise.all(incidentPromises);
-    // Marcar al cliente si acumula incidencias graves
-    await evaluateBlacklist(contract.clientId);
-  }
-
-  return carReturn;
 }
 
-async function evaluateBlacklist(clientId: number) {
-  const unresolvedHighSeverity = await prisma.incident.count({
+async function evaluateBlacklist(clientId: number, tx: Prisma.TransactionClient) {
+  const unresolvedHighSeverity = await tx.incident.count({
     where: {
       clientId,
       resolved: false,
@@ -134,9 +135,13 @@ async function evaluateBlacklist(clientId: number) {
   });
 
   if (unresolvedHighSeverity >= 2) {
-    await prisma.client.update({
+    await tx.client.update({
       where: { id: clientId },
-      data: { isBlacklisted: true },
+      data: {
+        isBlacklisted: true,
+        blacklistReason: 'Blacklist automática: múltiples incidencias graves sin resolver',
+        blacklistedAt: new Date(),
+      },
     });
   }
 }

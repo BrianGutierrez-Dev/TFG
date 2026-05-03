@@ -4,6 +4,7 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, ArrowLeft, Plus, CheckCircle } from 'lucide-angular';
 import { RentalsService } from '../../core/services/rentals.service';
+import { ToastService } from '../../core/services/toast.service';
 import { CarReturnsService } from '../../core/services/car-returns.service';
 import { IncidentsService } from '../../core/services/incidents.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -45,6 +46,9 @@ import type { RentalContract, Incident, CarCondition, FuelLevel, ContractStatus 
                 }
               </div>
             </div>
+            @if (statusError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ statusError() }}</p>
+            }
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p class="text-xs text-gray-400 mb-1">Cliente</p>
@@ -164,8 +168,11 @@ import type { RentalContract, Incident, CarCondition, FuelLevel, ContractStatus 
                       <textarea formControlName="notes" class="form-textarea" rows="2"></textarea>
                     </div>
                   </div>
+                  @if (returnError()) {
+                    <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ returnError() }}</p>
+                  }
                   <div class="flex gap-3">
-                    <app-button variant="secondary" size="sm" (clicked)="showReturnForm.set(false)">Cancelar</app-button>
+                    <app-button variant="secondary" size="sm" (clicked)="showReturnForm.set(false); returnError.set(null)">Cancelar</app-button>
                     <app-button type="submit" size="sm" [loading]="savingReturn()">
                       <lucide-icon [img]="CheckCircle" [size]="13"></lucide-icon>
                       Registrar
@@ -212,6 +219,7 @@ export class RentalDetailComponent implements OnInit {
   private carReturnsService = inject(CarReturnsService);
   private incidentsService = inject(IncidentsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly ArrowLeft = ArrowLeft;
   readonly Plus = Plus;
@@ -222,6 +230,8 @@ export class RentalDetailComponent implements OnInit {
   rental = signal<RentalContract | null>(null);
   incidents = signal<Incident[]>([]);
   showReturnForm = signal(false);
+  statusError = signal<string | null>(null);
+  returnError = signal<string | null>(null);
 
   returnForm = this.fb.group({
     returnDate: [new Date().toISOString().split('T')[0], Validators.required],
@@ -245,8 +255,10 @@ export class RentalDetailComponent implements OnInit {
   }
 
   changeStatus(status: ContractStatus) {
+    this.statusError.set(null);
     this.rentalsService.updateStatus(this.rental()!.id, status).subscribe({
-      next: data => this.rental.update(r => r ? { ...r, status: data.status } : r),
+      next: data => { this.rental.update(r => r ? { ...r, status: data.status } : r); this.toastService.success('Estado del contrato actualizado'); },
+      error: (err: any) => this.statusError.set(err?.error?.message ?? 'No se pudo actualizar el estado'),
     });
   }
 
@@ -268,8 +280,9 @@ export class RentalDetailComponent implements OnInit {
         this.savingReturn.set(false);
         this.showReturnForm.set(false);
         this.rental.update(r => r ? { ...r, carReturn: ret } : r);
+        this.toastService.success('Devolución registrada correctamente');
       },
-      error: () => this.savingReturn.set(false),
+      error: (err: any) => { this.savingReturn.set(false); this.returnError.set(err?.error?.message ?? 'Error al registrar la devolución'); },
     });
   }
 

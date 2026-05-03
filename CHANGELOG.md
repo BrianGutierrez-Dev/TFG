@@ -6,6 +6,16 @@ Nombre: Brian
 
 | Fecha       | Cambio                                                                                                    | Commit                                  |
 |-------------|-----------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| 03/05/2026  | Sistema de toasts global: `ToastService` + `ToastComponent` integrado en el layout                        | pendiente                               |
+| 03/05/2026  | Toasts de éxito en todas las operaciones CRUD (clientes, vehículos, empleados, incidencias, mantenimientos, alquileres, reparaciones) | pendiente      |
+| 03/05/2026  | Fix: `auth.service.ts` — añadido `next:` handler en `/api/auth/me` para mantener datos del empleado actualizados | pendiente                        |
+| 03/05/2026  | Fix: `rental-detail` — `saveReturn()` muestra mensaje de error al usuario en lugar de fallar silenciosamente | pendiente                             |
+| 03/05/2026  | Fix: `rental-detail` — `changeStatus()` añadido handler de error con mensaje visible                      | pendiente                               |
+| 03/05/2026  | Fix: `rental.controller.ts` — validación de enum `ContractStatus` en `updateStatus` para evitar 500       | pendiente                               |
+| 03/05/2026  | Fix: `rental.controller.ts` — validación de enum `ContractStatus` en `getAll` antes del cast              | pendiente                               |
+| 03/05/2026  | Fix: `carReturn.service.ts` — validación de `damageDescription` obligatoria cuando `damagesFound=true`    | pendiente                               |
+| 03/05/2026  | Fix: `carReturn.service.ts` — `evaluateBlacklist` ahora setea `blacklistReason` y `blacklistedAt`         | pendiente                               |
+| 03/05/2026  | Fix: `carReturn.service.ts` — operaciones de devolución envueltas en `prisma.$transaction`                | pendiente                               |
 | 29/04/2026  | Regeneración del cliente Prisma (`prisma generate`) para los campos `blacklistReason` y `blacklistedAt`   | 945ef3a                                 |
 | 29/04/2026  | Eliminación de `validateBody` en la ruta PUT `/api/clients/:id`                                           | c4ee1a2                                 |
 | 29/04/2026  | Fix del middleware de validación: `whitelist: false`, sin reemplazar `req.body` con la instancia DTO      | c4ee1a2                                 |

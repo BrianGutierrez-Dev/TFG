@@ -3,6 +3,7 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Pencil, Trash2, Car, Search } from 'lucide-angular';
 import { CarsService } from '../../core/services/cars.service';
 import { ClientsService } from '../../core/services/clients.service';
+import { ToastService } from '../../core/services/toast.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { ButtonComponent } from '../../shared/components/button.component';
@@ -151,6 +152,7 @@ export class CarListComponent implements OnInit {
   private carsService = inject(CarsService);
   private clientsService = inject(ClientsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Pencil = Pencil;
@@ -236,11 +238,12 @@ export class CarListComponent implements OnInit {
       color: v.color?.trim() || undefined,
       clientId: v.clientId ?? null,
     };
+    const isEdit = !!this.editingId();
     const op = this.editingId()
       ? this.carsService.update(this.editingId()!, data)
       : this.carsService.create(data);
     op.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success(isEdit ? 'Vehículo actualizado correctamente' : 'Vehículo creado correctamente'); },
       error: () => this.saving.set(false),
     });
   }
@@ -251,7 +254,7 @@ export class CarListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.carsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Vehículo eliminado correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

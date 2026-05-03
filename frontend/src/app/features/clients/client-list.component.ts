@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Pencil, Trash2, ShieldAlert, ShieldOff, Users, Search } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
+import { ToastService } from '../../core/services/toast.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { ButtonComponent } from '../../shared/components/button.component';
@@ -208,6 +209,7 @@ import type { Client } from '../../core/models';
 export class ClientListComponent implements OnInit {
   private clientsService = inject(ClientsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Pencil = Pencil;
@@ -294,11 +296,12 @@ export class ClientListComponent implements OnInit {
     if (v.isBlacklisted) data.blacklistReason = v.blacklistReason!;
 
     this.saveError.set(null);
+    const isEdit = !!this.editingId();
     const op = this.editingId()
       ? this.clientsService.update(this.editingId()!, data)
       : this.clientsService.create(data);
     op.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success(isEdit ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente'); },
       error: (err) => { this.saving.set(false); this.saveError.set(err?.error?.message ?? 'Error al guardar'); },
     });
   }
@@ -306,9 +309,12 @@ export class ClientListComponent implements OnInit {
   toggleBlacklist(c: Client) {
     if (c.isBlacklisted) {
       this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
-        next: () => this.clients.update(list =>
-          list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
-        ),
+        next: () => {
+          this.clients.update(list =>
+            list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
+          );
+          this.toastService.success('Cliente eliminado de la blacklist');
+        },
       });
     } else {
       this.blacklistReasonText = '';
@@ -334,6 +340,7 @@ export class ClientListComponent implements OnInit {
         this.clients.update(list =>
           list.map(x => x.id === c.id ? { ...x, isBlacklisted: true, blacklistReason: reason } : x)
         );
+        this.toastService.success('Cliente añadido a la blacklist');
       },
       error: (err: any) => {
         this.blacklisting.set(false);
@@ -348,7 +355,7 @@ export class ClientListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.clientsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Cliente eliminado correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

@@ -3,6 +3,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Trash2, Wrench, Search } from 'lucide-angular';
 import { MaintenancesService } from '../../core/services/maintenances.service';
+import { ToastService } from '../../core/services/toast.service';
 import { CarsService } from '../../core/services/cars.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
@@ -167,6 +168,7 @@ export class MaintenanceListComponent implements OnInit {
   private maintenancesService = inject(MaintenancesService);
   private carsService = inject(CarsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
@@ -249,7 +251,7 @@ export class MaintenanceListComponent implements OnInit {
       date: v.date!,
       nextDueDate: v.nextDueDate || undefined,
     } as Partial<Maintenance>).subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Mantenimiento registrado correctamente'); },
       error: () => this.saving.set(false),
     });
   }
@@ -260,7 +262,7 @@ export class MaintenanceListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.maintenancesService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Mantenimiento eliminado correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

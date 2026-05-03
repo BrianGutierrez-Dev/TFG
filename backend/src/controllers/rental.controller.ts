@@ -3,10 +3,18 @@ import * as rentalService from '../services/rental.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { ContractStatus } from '@prisma/client';
 
+const CONTRACT_STATUSES = Object.values(ContractStatus);
+
 export async function getAll(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const filters: { status?: ContractStatus; clientId?: number; carId?: number } = {};
-    if (req.query.status) filters.status = req.query.status as ContractStatus;
+    if (req.query.status) {
+      if (!CONTRACT_STATUSES.includes(req.query.status as ContractStatus)) {
+        res.status(400).json({ message: 'Estado de contrato no válido' });
+        return;
+      }
+      filters.status = req.query.status as ContractStatus;
+    }
     if (req.query.clientId) filters.clientId = Number(req.query.clientId);
     if (req.query.carId) filters.carId = Number(req.query.carId);
     res.json(await rentalService.getAll(filters));
@@ -51,6 +59,10 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
 export async function updateStatus(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { status } = req.body;
+    if (!status || !CONTRACT_STATUSES.includes(status)) {
+      res.status(400).json({ message: 'Estado de contrato no válido' });
+      return;
+    }
     res.json(await rentalService.updateStatus(Number(req.params.id), status));
   } catch (err) { next(err); }
 }

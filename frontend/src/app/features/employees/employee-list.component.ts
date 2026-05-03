@@ -3,6 +3,7 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Plus, Pencil, Trash2, UserCog, Search } from 'lucide-angular';
 import { EmployeesService } from '../../core/services/employees.service';
+import { ToastService } from '../../core/services/toast.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
 import { PageHeaderComponent } from '../../shared/components/page-header.component';
 import { ButtonComponent } from '../../shared/components/button.component';
@@ -134,6 +135,7 @@ import type { Employee, Role } from '../../core/models';
 export class EmployeeListComponent implements OnInit {
   private employeesService = inject(EmployeesService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Pencil = Pencil;
@@ -199,12 +201,12 @@ export class EmployeeListComponent implements OnInit {
       const data: Partial<Employee> & { password?: string } = { name: v.name!, email: v.email!, role: v.role as Role };
       if (v.password) data.password = v.password;
       this.employeesService.update(this.editingId()!, data).subscribe({
-        next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+        next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Empleado actualizado correctamente'); },
         error: () => this.saving.set(false),
       });
     } else {
       this.employeesService.create({ name: v.name!, email: v.email!, password: v.password!, role: v.role! }).subscribe({
-        next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+        next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Empleado creado correctamente'); },
         error: () => this.saving.set(false),
       });
     }
@@ -216,7 +218,7 @@ export class EmployeeListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.employeesService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Empleado eliminado correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

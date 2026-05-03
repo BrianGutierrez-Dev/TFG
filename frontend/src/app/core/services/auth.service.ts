@@ -19,6 +19,7 @@ export class AuthService {
   constructor() {
     if (this._token()) {
       this.http.get<Employee>('/api/auth/me').subscribe({
+        next: data => { this._employee.set(data); localStorage.setItem('employee', JSON.stringify(data)); },
         error: () => this.logout(),
       });
     }

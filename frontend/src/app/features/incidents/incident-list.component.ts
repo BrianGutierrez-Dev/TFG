@@ -3,6 +3,7 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Plus, CheckCircle, Trash2, AlertTriangle, Search } from 'lucide-angular';
 import { IncidentsService } from '../../core/services/incidents.service';
+import { ToastService } from '../../core/services/toast.service';
 import { ClientsService } from '../../core/services/clients.service';
 import { RentalsService } from '../../core/services/rentals.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -179,6 +180,7 @@ export class IncidentListComponent implements OnInit {
   private clientsService = inject(ClientsService);
   private rentalsService = inject(RentalsService);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly CheckCircle = CheckCircle;
@@ -252,14 +254,14 @@ export class IncidentListComponent implements OnInit {
       severity: v.severity as Severity,
       description: v.description!,
     }).subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Incidencia registrada correctamente'); },
       error: () => this.saving.set(false),
     });
   }
 
   resolve(inc: Incident) {
     this.incidentsService.resolve(inc.id).subscribe({
-      next: () => this.incidents.update(list => list.map(i => i.id === inc.id ? { ...i, resolved: true } : i)),
+      next: () => { this.incidents.update(list => list.map(i => i.id === inc.id ? { ...i, resolved: true } : i)); this.toastService.success('Incidencia marcada como resuelta'); },
     });
   }
 
@@ -269,7 +271,7 @@ export class IncidentListComponent implements OnInit {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.incidentsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); },
+      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Incidencia eliminada correctamente'); },
       error: () => this.deleting.set(false),
     });
   }

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { LucideAngularModule, Plus, Eye, FileText, Search } from 'lucide-angular';
 import { RentalsService } from '../../core/services/rentals.service';
+import { ToastService } from '../../core/services/toast.service';
 import { ClientsService } from '../../core/services/clients.service';
 import { CarsService } from '../../core/services/cars.service';
 import { SpinnerComponent } from '../../shared/components/spinner.component';
@@ -163,6 +164,7 @@ export class RentalListComponent implements OnInit {
   private carsService = inject(CarsService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private toastService = inject(ToastService);
 
   readonly Plus = Plus;
   readonly Eye = Eye;
@@ -259,7 +261,7 @@ export class RentalListComponent implements OnInit {
       totalPrice: v.totalPrice!,
       notes: v.notes || undefined,
     }).subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.load(); },
+      next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Contrato creado correctamente'); },
       error: () => this.saving.set(false),
     });
   }
