@@ -18,4 +18,5 @@ export class RentalsService {
   updateStatus(id: number, status: ContractStatus) {
     return this.http.patch<RentalContract>(`${this.url}/${id}/status`, { status });
   }
+  delete(id: number) { return this.http.delete(`${this.url}/${id}`); }
 }

@@ -33,13 +33,43 @@ Nombre: Carlos
 
 | Fecha       | Cambio                                                                 | Commit                    |
 |-------------|------------------------------------------------------------------------|---------------------------|
+| 30/04/2026  | Eliminación de paginación backend y vuelta a listados completos        | C -> [1.2.42]             |
+| 30/04/2026  | Seed reinicia la base con 20 registros por entidad principal           | C -> [1.2.41]             |
+| 30/04/2026  | Seed restaura la cuenta admin activa con rol y contraseña por defecto  | C -> [1.2.40]             |
+| 30/04/2026  | Alertas internas accionables en el dashboard                           | C -> [1.2.39]             |
+| 30/04/2026  | Mensajes de error visibles al guardar o dar de baja empleados y vehículos | C -> [1.2.38]           |
+| 30/04/2026  | Paginación y búsqueda desde backend en clientes, vehículos y contratos | C -> [1.2.37]             |
+| 30/04/2026  | Baja lógica de clientes y vehículos conservando historial              | C -> [1.2.36]             |
+| 30/04/2026  | Baja lógica de empleados conservando historial                         | C -> [1.2.35]             |
+| 29/04/2026  | Marcado automático de contratos vencidos como OVERDUE al iniciar y consultar contratos | C -> [1.2.34] |
+| 29/04/2026  | Dashboard ejecutivo con ingresos mensuales, disponibilidad, reparaciones, clientes problemáticos y mantenimientos a 15 días | C -> [1.2.33] |
+| 29/04/2026  | Buscador de vehículo por matrícula o modelo con bloqueo visual de no disponibles en contratos | C -> [1.2.32] |
+| 29/04/2026  | Validación de disponibilidad real de vehículos por solape de fechas en contratos | C -> [1.2.31] |
+| 29/04/2026  | Renombrado de métricas del dashboard a incidencias activas y reparaciones pendientes | C -> [1.2.30] |
+| 29/04/2026  | Paginación de incidencias, mantenimiento, vehículos y reparaciones cada 10 registros | C -> [1.2.28] |
+| 29/04/2026  | Paginación de clientes y contratos cada 10 registros                   | C -> [1.2.27]             |
+| 29/04/2026  | Gestión de baja y despido de empleados con bloqueo de acceso           | C -> [1.2.26]             |
+| 29/04/2026  | Cliente obligatorio marcado visualmente en nueva incidencia            | C -> [1.2.25]             |
+| 29/04/2026  | Cliente obligatorio marcado visualmente en nuevo contrato              | C -> [1.2.24]             |
+| 29/04/2026  | Descripción obligatoria con mínimo de 3 caracteres en mantenimientos   | C -> [1.2.23]             |
+| 29/04/2026  | Propietario obligatorio al crear o editar vehículos                    | C -> [1.2.22]             |
+| 29/04/2026  | Filtro de prioridad en incidencias                                     | C -> [1.2.21]             |
+| 28/04/2026  | Búsqueda por DNI en el listado de contratos                            | C -> [1.2.20]             |
+| 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en reparaciones            | C -> [1.2.19]             |
+| 28/04/2026  | Búsqueda de vehículo por matrícula o modelo en mantenimientos          | C -> [1.2.18]             |
+| 28/04/2026  | Búsqueda de cliente por nombre o DNI en contratos, incidencias y coches | C -> [1.2.17]             |
+| 28/04/2026  | Dashboard con próximas devoluciones en los siguientes 3 días           | C -> [1.2.16]             |
+| 28/04/2026  | Ficha de cliente con contratos, incidencias y vehículos asignados      | C -> [1.2.15]             |
+| 28/04/2026  | Dashboard muestra devoluciones pendientes para el día de hoy           | C -> [1.2.14]             |
+| 28/04/2026  | Validaciones en formulario de clientes y mensajes de error al eliminar | C -> [1.2.13]             |
+| 28/04/2026  | Validaciones integridad referencial y endpoint DELETE contratos         | C -> [1.2.12]             |
 | 28/04/2026  | Validaciones en creación de reparaciones                               | C -> [1.2.11]             |
 | 28/04/2026  | Coste obligatorio mayor que uno en mantenimientos                      | C -> [1.2.10]             |
 | 28/04/2026  | Ajuste de descripción opcional en mantenimientos                       | C -> [1.2.9]              |
 | 28/04/2026  | Validaciones en creación de mantenimientos                             | C -> [1.2.8]              |
 | 28/04/2026  | Marcado explícito de campos obligatorios en vehículos                  | C -> [1.2.7]              |
 | 28/04/2026  | Validaciones en formulario de vehículos                                | C -> [1.2.6]              |
-| 28/04/2026  | Validaciones en creación de incidencias                                | C -> [1.2.5]              |
+| 28/04/2026  | Validaciones en creación de incidencseias                                | C -> [1.2.5]              |
 | 28/04/2026  | Bloqueo de contratos con precio total a cero                           | C -> [1.2.4]              |
 | 28/04/2026  | Limpieza de validaciones en formulario de clientes                     | C -> [1.2.3]              |
 | 28/04/2026  | Validación de fechas en creación de contratos                          | C -> [1.2.2]              |
@@ -53,3 +83,4 @@ Nombre: Carlos
 | 27/04/2026  | Permiso de `curl` añadido a `settings.local.json`                      | add curl permission       |
 | 27/04/2026  | Migración a la última versión de Angular                               | migrado Angular           |
 | 23/04/2026  | Commit inicial del proyecto                                            | Initial commit            |
+| 29/04/2026  | Merge -> [Resolución de conflictos con rama de Brian]                 | Merge -> [Resolución de conflictos con rama de Brian] |

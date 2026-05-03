@@ -10,7 +10,30 @@
       "PowerShell(Stop-Process -Id 10500 -Force)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('properties',{}\\).keys\\(\\)\\)\\)\")",
       "Bash(node -e \"const s=require\\('./frontend/node_modules/@angular/build/src/builders/application/schema.json'\\); console.log\\(Object.keys\\(s.properties\\)\\)\")",
-      "Bash(node -e \"const s=require\\('./node_modules/@angular/build/src/builders/application/schema.json'\\); console.log\\(Object.keys\\(s.properties\\).join\\('\\\\n'\\)\\)\")"
+      "Bash(node -e \"const s=require\\('./node_modules/@angular/build/src/builders/application/schema.json'\\); console.log\\(Object.keys\\(s.properties\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(git restore *)",
+      "Bash(git -C /Users/carlosmartinnavarro/Desktop/YO/TFGBrian/TFG status --short)",
+      "Bash(npx ts-node -e ' *)",
+      "Bash(node -e ' *)",
+      "Bash(psql -U postgres -h localhost -d tfg -c ' *)",
+      "Bash(PGPASSWORD=postgres psql -U postgres -h localhost -d tfg -c \"\\\\d \\\\\"Client\\\\\"\")",
+      "Bash(PGPASSWORD=postgres psql -U postgres -h localhost -d tfg -c \"SELECT column_name FROM information_schema.columns WHERE table_name='Client' AND column_name IN \\('blacklistReason','blacklistedAt'\\);\")"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO=/Users/carlosmartinnavarro/Desktop/YO/TFGBrian/TFG && MSG=$(git -C \"$REPO\" log -1 --format=\"%s\") && DATE=$(git -C \"$REPO\" log -1 --format=\"%ad\" --date=format:\"%d/%m/%Y\") && if echo \"$MSG\" | grep -qE '^C -> \\['; then DESC=$(echo \"$MSG\" | sed 's/.*-> \\[\\(.*\\)\\]$/\\1/'); VER=$(echo \"$MSG\" | grep -oE 'C -> \\[[0-9]+\\.[0-9]+\\.[0-9]+\\]'); else DESC=\"$MSG\"; VER=\"$MSG\"; fi && grep -qF \"$VER\" \"$REPO/CHANGELOG.md\" 2>/dev/null || printf '| %-11s | %-70s | %-25s |\\n' \"$DATE\" \"$DESC\" \"$VER\" >> \"$REPO/CHANGELOG.md\" 2>/dev/null || true",
+            "if": "Bash(git commit *)",
+            "statusMessage": "Actualizando CHANGELOG.md..."
+          }
+        ]
+      }
     ]
   }
 }

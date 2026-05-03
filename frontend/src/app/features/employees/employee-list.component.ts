@@ -9,6 +9,8 @@ import { PageHeaderComponent } from '../../shared/components/page-header.compone
 import { ButtonComponent } from '../../shared/components/button.component';
 import type { Employee, Role } from '../../core/models';
 
+type EmployeeAccessStatus = 'ACTIVE' | 'BAJA' | 'DESPEDIDO';
+
 @Component({
   selector: 'app-employee-list',
   standalone: true,
@@ -39,6 +41,7 @@ import type { Employee, Role } from '../../core/models';
               <th>Nombre</th>
               <th>Email</th>
               <th>Rol</th>
+              <th>Estado</th>
               <th>Creado</th>
               <th>Acciones</th>
             </tr>
@@ -54,6 +57,12 @@ import type { Employee, Role } from '../../core/models';
                     {{ e.role === 'ADMIN' ? 'Admin' : 'Empleado' }}
                   </span>
                 </td>
+                <td>
+                  <span class="text-xs font-medium px-2 py-0.5 rounded-full"
+                        [class]="e.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+                    {{ employeeStatusLabel(e) }}
+                  </span>
+                </td>
                 <td class="text-sm text-gray-500">{{ e.createdAt | date:'dd/MM/yyyy' }}</td>
                 <td class="space-x-0.5">
                   <button (click)="openEdit(e)" class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
@@ -66,7 +75,7 @@ import type { Employee, Role } from '../../core/models';
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="text-center py-14 text-gray-400">
+                <td colspan="6" class="text-center py-14 text-gray-400">
                   <lucide-icon [img]="UserCog" [size]="32" class="mx-auto mb-2 opacity-20"></lucide-icon>
                   <p class="text-sm">No hay empleados</p>
                 </td>
@@ -105,7 +114,18 @@ import type { Employee, Role } from '../../core/models';
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
+                <div>
+                  <label class="form-label">Estado de acceso</label>
+                  <select formControlName="accessStatus" class="form-select">
+                    <option value="ACTIVE">Activo</option>
+                    <option value="BAJA">Baja</option>
+                    <option value="DESPEDIDO">Despedido</option>
+                  </select>
+                </div>
               </div>
+              @if (saveError()) {
+                <p class="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ saveError() }}</p>
+              }
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
                 <app-button type="submit" [loading]="saving()">Guardar</app-button>
@@ -120,11 +140,14 @@ import type { Employee, Role } from '../../core/models';
       <div class="modal-overlay">
         <div class="modal-inner">
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar empleado?</h2>
-            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja empleado?</h2>
+            <p class="text-sm text-gray-500 mb-6">Se bloqueará su acceso, pero se conservará su historial.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
         </div>
@@ -146,23 +169,30 @@ export class EmployeeListComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
+  saveError = signal<string | null>(null);
   employees = signal<Employee[]>([]);
   search = signal('');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
 
   form = this.fb.group({
     name: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     password: [''],
     role: ['EMPLOYEE' as Role],
+    accessStatus: ['ACTIVE' as EmployeeAccessStatus],
   });
 
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.employees().filter(e =>
-      !q || e.name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q) || e.role.toLowerCase().includes(q)
+      !q
+      || e.name.toLowerCase().includes(q)
+      || e.email.toLowerCase().includes(q)
+      || e.role.toLowerCase().includes(q)
+      || this.employeeStatusLabel(e).toLowerCase().includes(q)
     );
   });
 
@@ -177,7 +207,8 @@ export class EmployeeListComponent implements OnInit {
 
   openCreate() {
     this.editingId.set(null);
-    this.form.reset({ role: 'EMPLOYEE' });
+    this.saveError.set(null);
+    this.form.reset({ role: 'EMPLOYEE', accessStatus: 'ACTIVE' });
     this.form.get('password')!.setValidators(Validators.required);
     this.form.get('password')!.updateValueAndValidity();
     this.showModal.set(true);
@@ -185,41 +216,91 @@ export class EmployeeListComponent implements OnInit {
 
   openEdit(e: Employee) {
     this.editingId.set(e.id);
-    this.form.patchValue({ name: e.name, email: e.email, role: e.role, password: '' });
+    this.saveError.set(null);
+    this.form.patchValue({
+      name: e.name,
+      email: e.email,
+      role: e.role,
+      password: '',
+      accessStatus: this.employeeAccessStatus(e),
+    });
     this.form.get('password')!.clearValidators();
     this.form.get('password')!.updateValueAndValidity();
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.saveError.set(null);
+  }
+
+  employeeAccessStatus(e: Employee): EmployeeAccessStatus {
+    if (e.isActive) return 'ACTIVE';
+    return e.terminationReason === 'DESPEDIDO' ? 'DESPEDIDO' : 'BAJA';
+  }
+
+  employeeStatusLabel(e: Employee) {
+    const status = this.employeeAccessStatus(e);
+    if (status === 'DESPEDIDO') return 'Despedido';
+    if (status === 'BAJA') return 'Baja';
+    return 'Activo';
+  }
 
   save() {
     if (this.form.invalid) return;
     this.saving.set(true);
+    this.saveError.set(null);
     const v = this.form.value;
+    const accessStatus = v.accessStatus as EmployeeAccessStatus;
+    const accessData = {
+      isActive: accessStatus === 'ACTIVE',
+      terminationReason: accessStatus === 'ACTIVE' ? undefined : accessStatus,
+    };
     if (this.editingId()) {
-      const data: Partial<Employee> & { password?: string } = { name: v.name!, email: v.email!, role: v.role as Role };
+      const data: Partial<Employee> & { password?: string } = {
+        name: v.name!,
+        email: v.email!,
+        role: v.role as Role,
+        ...accessData,
+      };
       if (v.password) data.password = v.password;
       this.employeesService.update(this.editingId()!, data).subscribe({
         next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Empleado actualizado correctamente'); },
-        error: () => this.saving.set(false),
+        error: (err) => {
+          this.saving.set(false);
+          this.saveError.set(err?.error?.message ?? 'No se ha podido guardar el empleado');
+        },
       });
     } else {
       this.employeesService.create({ name: v.name!, email: v.email!, password: v.password!, role: v.role! }).subscribe({
         next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success('Empleado creado correctamente'); },
-        error: () => this.saving.set(false),
+        error: (err) => {
+          this.saving.set(false);
+          this.saveError.set(err?.error?.message ?? 'No se ha podido crear el empleado');
+        },
       });
     }
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.employeesService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Empleado eliminado correctamente'); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); this.toastService.success('Empleado eliminado correctamente'); },
+      error: (err) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido dar de baja el empleado');
+      },
     });
   }
 }

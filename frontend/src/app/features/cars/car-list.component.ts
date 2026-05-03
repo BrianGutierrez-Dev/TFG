@@ -24,7 +24,7 @@ import type { Car as CarModel, Client } from '../../core/models';
     <div class="flex items-center gap-3 mb-5">
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por matrícula, marca, modelo, año, color...">
       </div>
     </div>
@@ -46,7 +46,7 @@ import type { Car as CarModel, Client } from '../../core/models';
             </tr>
           </thead>
           <tbody>
-            @for (c of filtered(); track c.id) {
+            @for (c of paginated(); track c.id) {
               <tr>
                 <td class="font-mono font-medium text-gray-900">{{ c.licensePlate }}</td>
                 <td class="text-gray-700">{{ c.brand }}</td>
@@ -73,6 +73,26 @@ import type { Car as CarModel, Client } from '../../core/models';
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -112,16 +132,47 @@ import type { Car as CarModel, Client } from '../../core/models';
                   <label class="form-label">Color</label>
                   <input formControlName="color" class="form-input" maxlength="30" placeholder="Blanco">
                 </div>
-                <div class="col-span-2">
-                  <label class="form-label">Propietario</label>
-                  <select formControlName="clientId" class="form-select">
-                    <option [ngValue]="null">Sin propietario</option>
-                    @for (client of clients(); track client.id) {
-                      <option [ngValue]="client.id">{{ client.name }} — {{ client.dni }}</option>
+                <div class="col-span-2 relative">
+                  <label class="form-label">Propietario *</label>
+                  @if (selectedClient()) {
+                    <div class="form-input flex items-center justify-between cursor-default">
+                      <span class="text-gray-900">{{ selectedClient()!.name }}
+                        <span class="ml-1 font-mono text-xs text-gray-400">{{ selectedClient()!.dni }}</span>
+                      </span>
+                      <button type="button" (click)="clearClient()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('clientId')"
+                           placeholder="Buscar por nombre o DNI..."
+                           [value]="clientQuery()"
+                           (input)="onClientSearch($any($event.target).value)"
+                           (focus)="showClientSuggestions.set(true)"
+                           (blur)="onClientBlur()"
+                           autocomplete="off">
+                    @if (showClientSuggestions() && clientQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                        @if (clientSuggestions().length > 0) {
+                          @for (c of clientSuggestions(); track c.id) {
+                            <li>
+                              <button type="button" (mousedown)="selectClient(c)"
+                                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm">
+                                <span class="font-medium text-gray-900">{{ c.name }}</span>
+                                <span class="ml-2 font-mono text-xs text-gray-400">{{ c.dni }}</span>
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                 </div>
               </div>
+              @if (saveError()) {
+                <p class="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ saveError() }}</p>
+              }
               <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <app-button variant="secondary" (clicked)="closeModal()">Cancelar</app-button>
                 <app-button type="button" [loading]="saving()" (clicked)="save()">Guardar</app-button>
@@ -136,11 +187,14 @@ import type { Car as CarModel, Client } from '../../core/models';
       <div class="modal-overlay">
         <div class="modal-inner">
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar vehículo?</h2>
-            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja vehículo?</h2>
+            <p class="text-sm text-gray-500 mb-6">Se ocultará de los listados activos, pero se conservará su historial.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
         </div>
@@ -164,13 +218,28 @@ export class CarListComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
+  saveError = signal<string | null>(null);
   cars = signal<CarModel[]>([]);
   clients = signal<Client[]>([]);
   search = signal('');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
   submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
+
+  clientQuery = signal('');
+  showClientSuggestions = signal(false);
+  selectedClient = signal<Client | null>(null);
+  clientSuggestions = computed(() => {
+    const q = this.clientQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.clients().filter(c =>
+      c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
 
   form = this.fb.group({
     licensePlate: ['', [Validators.required, Validators.pattern(/^\d{4}\s?[A-Za-z]{3}$/)]],
@@ -178,7 +247,7 @@ export class CarListComponent implements OnInit {
     model: ['', [Validators.required, Validators.maxLength(50), Validators.pattern(/^.*\S.*$/)]],
     year: [new Date().getFullYear(), [Validators.required, Validators.min(1900), Validators.max(this.maxVehicleYear)]],
     color: ['', Validators.maxLength(30)],
-    clientId: [null as number | null],
+    clientId: [null as number | null, Validators.required],
   });
 
   filtered = computed(() => {
@@ -187,10 +256,30 @@ export class CarListComponent implements OnInit {
       !q || c.licensePlate.toLowerCase().includes(q) || c.brand.toLowerCase().includes(q) || c.model.toLowerCase().includes(q) || String(c.year).includes(q) || (c.color ?? '').toLowerCase().includes(q) || (c.client?.name ?? '').toLowerCase().includes(q)
     );
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() {
     this.load();
     this.clientsService.getAll().subscribe({ next: data => this.clients.set(data) });
+  }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
   }
 
   load() {
@@ -203,6 +292,10 @@ export class CarListComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.submitted.set(false);
+    this.saveError.set(null);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+    this.showClientSuggestions.set(false);
     this.form.reset({ year: new Date().getFullYear(), clientId: null });
     this.showModal.set(true);
   }
@@ -210,11 +303,46 @@ export class CarListComponent implements OnInit {
   openEdit(c: CarModel) {
     this.editingId.set(c.id);
     this.submitted.set(false);
+    this.saveError.set(null);
+    this.clientQuery.set('');
+    this.showClientSuggestions.set(false);
+    const owner = c.clientId ? (this.clients().find(cl => cl.id === c.clientId) ?? null) : null;
+    this.selectedClient.set(owner);
     this.form.patchValue({ ...c, clientId: c.clientId ?? null });
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.submitted.set(false);
+    this.saveError.set(null);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+  }
+
+  onClientSearch(value: string) {
+    this.clientQuery.set(value);
+    this.form.controls.clientId.setValue(null);
+    this.selectedClient.set(null);
+    this.showClientSuggestions.set(true);
+  }
+
+  selectClient(c: Client) {
+    this.selectedClient.set(c);
+    this.form.controls.clientId.setValue(c.id);
+    this.showClientSuggestions.set(false);
+    this.clientQuery.set('');
+  }
+
+  clearClient() {
+    this.selectedClient.set(null);
+    this.form.controls.clientId.setValue(null);
+    this.clientQuery.set('');
+  }
+
+  onClientBlur() {
+    setTimeout(() => this.showClientSuggestions.set(false), 150);
+  }
 
   isInvalid(controlName: keyof typeof this.form.controls) {
     const control = this.form.controls[controlName];
@@ -223,6 +351,7 @@ export class CarListComponent implements OnInit {
 
   save() {
     this.submitted.set(true);
+    this.saveError.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       Object.values(this.form.controls).forEach(control => control.markAsDirty());
@@ -230,13 +359,13 @@ export class CarListComponent implements OnInit {
     }
     this.saving.set(true);
     const v = this.form.value;
-    const data: Omit<Partial<CarModel>, 'clientId'> & { clientId?: number | null } = {
+    const data: Omit<Partial<CarModel>, 'clientId'> & { clientId: number } = {
       licensePlate: v.licensePlate!.replace(/\s/g, '').toUpperCase(),
       brand: v.brand!.trim(),
       model: v.model!.trim(),
       year: v.year!,
       color: v.color?.trim() || undefined,
-      clientId: v.clientId ?? null,
+      clientId: v.clientId!,
     };
     const isEdit = !!this.editingId();
     const op = this.editingId()
@@ -244,18 +373,32 @@ export class CarListComponent implements OnInit {
       : this.carsService.create(data);
     op.subscribe({
       next: () => { this.saving.set(false); this.closeModal(); this.load(); this.toastService.success(isEdit ? 'Vehículo actualizado correctamente' : 'Vehículo creado correctamente'); },
-      error: () => this.saving.set(false),
+      error: (err: any) => {
+        this.saving.set(false);
+        this.saveError.set(err?.error?.message ?? 'No se ha podido guardar el vehículo');
+      },
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.carsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Vehículo eliminado correctamente'); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); this.toastService.success('Vehículo eliminado correctamente'); },
+      error: (err: any) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido dar de baja el vehículo');
+      },
     });
   }
 }

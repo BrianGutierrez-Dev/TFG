@@ -27,12 +27,17 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
     <div class="flex items-center gap-3 mb-5 flex-wrap">
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por cliente, DNI, descripción, tipo...">
       </div>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('all')">Todas</button>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('unresolved')">Pendientes</button>
-      <button [class]="'filter-tab ' + (resolvedFilter() === 'resolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="resolvedFilter.set('resolved')">Resueltas</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'all' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('all')">Todas</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'unresolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('unresolved')">Pendientes</button>
+      <button [class]="'filter-tab ' + (resolvedFilter() === 'resolved' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="setResolvedFilter('resolved')">Resueltas</button>
+      <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 ml-1">Prioridad</span>
+      <button [class]="'filter-tab ' + (severityFilter() === 'LOW' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('LOW')">Baja</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'MEDIUM' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('MEDIUM')">Media</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'HIGH' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('HIGH')">Alta</button>
+      <button [class]="'filter-tab ' + (severityFilter() === 'CRITICAL' ? 'filter-tab-active' : 'filter-tab-inactive')" (click)="toggleSeverity('CRITICAL')">Crítica</button>
     </div>
 
     @if (loading()) {
@@ -44,7 +49,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             <tr>
               <th>Cliente</th>
               <th>Tipo</th>
-              <th>Gravedad</th>
+              <th>Prioridad</th>
               <th>Descripción</th>
               <th>Estado</th>
               <th>Fecha</th>
@@ -52,7 +57,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             </tr>
           </thead>
           <tbody>
-            @for (inc of filtered(); track inc.id) {
+            @for (inc of paginated(); track inc.id) {
               <tr>
                 <td>
                   <p class="font-medium text-gray-900">{{ inc.client.name }}</p>
@@ -93,6 +98,26 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -105,14 +130,42 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
             </div>
             <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
               <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="form-label">Cliente *</label>
-                  <select formControlName="clientId" class="form-select">
-                    <option [ngValue]="null" disabled>Seleccionar cliente</option>
-                    @for (c of clientOptions(); track c.id) {
-                      <option [ngValue]="c.id">{{ c.name }} — {{ c.dni }}</option>
+                  @if (selectedClient()) {
+                    <div class="form-input flex items-center justify-between cursor-default">
+                      <span class="text-gray-900">{{ selectedClient()!.name }}
+                        <span class="ml-1 font-mono text-xs text-gray-400">{{ selectedClient()!.dni }}</span>
+                      </span>
+                      <button type="button" (click)="clearClient()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('clientId')"
+                           placeholder="Buscar por nombre o DNI..."
+                           [value]="clientQuery()"
+                           (input)="onClientSearch($any($event.target).value)"
+                           (focus)="showClientSuggestions.set(true)"
+                           (blur)="onClientBlur()"
+                           autocomplete="off">
+                    @if (showClientSuggestions() && clientQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                        @if (clientSuggestions().length > 0) {
+                          @for (c of clientSuggestions(); track c.id) {
+                            <li>
+                              <button type="button" (mousedown)="selectClient(c)"
+                                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm">
+                                <span class="font-medium text-gray-900">{{ c.name }}</span>
+                                <span class="ml-2 font-mono text-xs text-gray-400">{{ c.dni }}</span>
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Contrato (opcional)</label>
@@ -136,7 +189,7 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
                   </select>
                 </div>
                 <div>
-                  <label class="form-label">Gravedad *</label>
+                  <label class="form-label">Prioridad *</label>
                   <select formControlName="severity" class="form-select">
                     <option value="LOW">Baja</option>
                     <option value="MEDIUM">Media</option>
@@ -165,8 +218,11 @@ import type { Incident, Client, RentalContract, IncidentType, Severity } from '.
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
             <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar incidencia?</h2>
             <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
               <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
             </div>
           </div>
@@ -196,8 +252,24 @@ export class IncidentListComponent implements OnInit {
   rentalOptions = signal<RentalContract[]>([]);
   search = signal('');
   resolvedFilter = signal<'all' | 'resolved' | 'unresolved'>('all');
+  severityFilter = signal<Severity | null>(null);
   showModal = signal(false);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
+  submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
+
+  clientQuery = signal('');
+  showClientSuggestions = signal(false);
+  selectedClient = signal<Client | null>(null);
+  clientSuggestions = computed(() => {
+    const q = this.clientQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.clientOptions().filter(c =>
+      c.name.toLowerCase().includes(q) || c.dni.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
 
   form = this.fb.group({
     clientId: [null as number | null, Validators.required],
@@ -210,14 +282,41 @@ export class IncidentListComponent implements OnInit {
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     const r = this.resolvedFilter();
+    const s = this.severityFilter();
     return this.incidents().filter(i => {
       const matchSearch = !q || i.client.name.toLowerCase().includes(q) || i.client.dni.toLowerCase().includes(q) || i.description.toLowerCase().includes(q) || i.type.toLowerCase().includes(q);
       const matchResolved = r === 'all' || (r === 'resolved' && i.resolved) || (r === 'unresolved' && !i.resolved);
-      return matchSearch && matchResolved;
+      const matchSeverity = !s || i.severity === s;
+      return matchSearch && matchResolved && matchSeverity;
     });
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() { this.load(); }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  setResolvedFilter(filter: 'all' | 'resolved' | 'unresolved') {
+    this.resolvedFilter.set(filter);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
+  }
 
   load() {
     this.incidentsService.getAll().subscribe({
@@ -228,21 +327,62 @@ export class IncidentListComponent implements OnInit {
 
   openCreate() {
     this.form.reset({ type: 'OTHER', severity: 'MEDIUM' });
+    this.submitted.set(false);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+    this.showClientSuggestions.set(false);
     this.clientsService.getAll().subscribe({ next: data => this.clientOptions.set(data) });
     this.rentalsService.getAll().subscribe({ next: data => this.rentalOptions.set(data) });
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.submitted.set(false);
+    this.selectedClient.set(null);
+    this.clientQuery.set('');
+  }
+
+  toggleSeverity(severity: Severity) {
+    this.severityFilter.set(this.severityFilter() === severity ? null : severity);
+    this.currentPage.set(1);
+  }
+
+  onClientSearch(value: string) {
+    this.clientQuery.set(value);
+    this.form.controls.clientId.setValue(null);
+    this.selectedClient.set(null);
+    this.showClientSuggestions.set(true);
+  }
+
+  selectClient(c: Client) {
+    this.selectedClient.set(c);
+    this.form.controls.clientId.setValue(c.id);
+    this.showClientSuggestions.set(false);
+    this.clientQuery.set('');
+  }
+
+  clearClient() {
+    this.selectedClient.set(null);
+    this.form.controls.clientId.setValue(null);
+    this.clientQuery.set('');
+  }
+
+  onClientBlur() {
+    setTimeout(() => this.showClientSuggestions.set(false), 150);
+  }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
 
   save() {
+    this.submitted.set(true);
+
     if (this.form.invalid) {
-      Object.values(this.form.controls).forEach(control => {
-        if (control.invalid) {
-          control.markAsTouched();
-          control.markAsDirty();
-        }
-      });
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
     this.saving.set(true);
@@ -265,14 +405,25 @@ export class IncidentListComponent implements OnInit {
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.incidentsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Incidencia eliminada correctamente'); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); this.toastService.success('Incidencia eliminada correctamente'); },
+      error: (err: any) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar la incidencia');
+      },
     });
   }
 }

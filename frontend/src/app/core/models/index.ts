@@ -11,6 +11,9 @@ export interface Employee {
   email: string;
   name: string;
   role: Role;
+  isActive: boolean;
+  deactivatedAt?: string;
+  terminationReason?: 'BAJA' | 'DESPEDIDO';
   createdAt: string;
   updatedAt?: string;
 }
@@ -25,7 +28,10 @@ export interface Client {
   isBlacklisted: boolean;
   blacklistReason?: string;
   blacklistedAt?: string;
+  wasBlacklisted?: boolean;
   notes?: string;
+  isActive: boolean;
+  deactivatedAt?: string;
   createdAt: string;
   updatedAt: string;
   _count?: { incidents: number; contracts: number; cars: number };
@@ -42,6 +48,8 @@ export interface Car {
   color?: string;
   clientId?: number;
   client?: Pick<Client, 'id' | 'name' | 'dni'>;
+  isActive: boolean;
+  deactivatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

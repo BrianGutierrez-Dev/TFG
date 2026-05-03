@@ -3,7 +3,7 @@ import { AppError } from '../middleware/error.middleware';
 
 export async function getAll(clientId?: number) {
   return prisma.car.findMany({
-    where: clientId ? { clientId } : undefined,
+    where: { isActive: true, ...(clientId ? { clientId } : {}) },
     include: { client: { select: { id: true, name: true, dni: true } } },
     orderBy: { brand: 'asc' },
   });
@@ -29,15 +29,14 @@ export async function create(data: {
   model: string;
   year: number;
   color?: string;
-  clientId?: number;
+  clientId: number;
 }) {
   const exists = await prisma.car.findUnique({ where: { licensePlate: data.licensePlate } });
   if (exists) throw new AppError(409, 'Ya existe un vehículo con esa matrícula');
 
-  if (data.clientId) {
-    const client = await prisma.client.findUnique({ where: { id: data.clientId } });
-    if (!client) throw new AppError(404, 'Cliente no encontrado');
-  }
+  const client = await prisma.client.findUnique({ where: { id: data.clientId } });
+  if (!client) throw new AppError(404, 'Cliente no encontrado');
+  if (!client.isActive) throw new AppError(400, 'No se puede asignar un vehículo a un cliente dado de baja');
 
   return prisma.car.create({ data });
 }
@@ -50,7 +49,8 @@ export async function update(
     model: string;
     year: number;
     color: string | null;
-    clientId: number | null;
+    clientId: number;
+    isActive: boolean;
   }>
 ) {
   const current = await getById(id);
@@ -60,15 +60,24 @@ export async function update(
     if (exists) throw new AppError(409, 'Ya existe un vehículo con esa matrícula');
   }
 
-  if (data.clientId) {
+  if (data.clientId !== undefined) {
     const client = await prisma.client.findUnique({ where: { id: data.clientId } });
     if (!client) throw new AppError(404, 'Cliente no encontrado');
+    if (!client.isActive) throw new AppError(400, 'No se puede asignar un vehículo a un cliente dado de baja');
   }
 
   return prisma.car.update({ where: { id }, data });
 }
 
 export async function remove(id: number) {
-  await getById(id);
-  await prisma.car.delete({ where: { id } });
+  const car = await getById(id);
+  if (!car.isActive) return;
+
+  await prisma.car.update({
+    where: { id },
+    data: {
+      isActive: false,
+      deactivatedAt: new Date(),
+    },
+  });
 }

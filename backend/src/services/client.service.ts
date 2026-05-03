@@ -1,9 +1,9 @@
 import prisma from '../prisma/client';
 import { AppError } from '../middleware/error.middleware';
 
-export async function getAll(filters?: { isBlacklisted?: boolean }) {
+export async function getAll(filters?: { isBlacklisted?: boolean; isActive?: boolean }) {
   return prisma.client.findMany({
-    where: filters,
+    where: { isActive: true, ...filters },
     include: {
       _count: { select: { incidents: true, contracts: true, cars: true } },
       ...(filters?.isBlacklisted === true
@@ -57,6 +57,7 @@ export async function update(
     notes: string;
     isBlacklisted: boolean;
     blacklistReason: string;
+    isActive: boolean;
   }>
 ) {
   await getById(id);
@@ -70,14 +71,23 @@ export async function update(
   } else if (data.isBlacklisted === false) {
     updateData.blacklistReason = null;
     updateData.blacklistedAt = null;
+    updateData.wasBlacklisted = true;
   }
 
   return prisma.client.update({ where: { id }, data: updateData });
 }
 
 export async function remove(id: number) {
-  await getById(id);
-  await prisma.client.delete({ where: { id } });
+  const client = await getById(id);
+  if (!client.isActive) return;
+
+  await prisma.client.update({
+    where: { id },
+    data: {
+      isActive: false,
+      deactivatedAt: new Date(),
+    },
+  });
 }
 
 export async function getClientHistory(id: number) {

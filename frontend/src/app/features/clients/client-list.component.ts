@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { LucideAngularModule, Plus, Pencil, Trash2, ShieldAlert, ShieldOff, Users, Search } from 'lucide-angular';
 import { ClientsService } from '../../core/services/clients.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -24,13 +25,17 @@ import type { Client } from '../../core/models';
     <div class="flex items-center gap-3 mb-5">
       <div class="relative flex-1 max-w-sm">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por nombre, DNI, email, teléfono...">
       </div>
     </div>
 
     @if (loading()) {
       <app-spinner></app-spinner>
+    } @else if (loadError()) {
+      <div class="card p-6 text-sm text-red-600 bg-red-50 border-red-200">
+        {{ loadError() }}
+      </div>
     } @else {
       <div class="card overflow-hidden">
         <table class="data-table">
@@ -46,8 +51,8 @@ import type { Client } from '../../core/models';
             </tr>
           </thead>
           <tbody>
-            @for (c of filtered(); track c.id) {
-              <tr>
+            @for (c of paginated(); track c.id) {
+              <tr class="cursor-pointer" (click)="goToDetail(c.id)">
                 <td class="font-medium text-gray-900">{{ c.name }}</td>
                 <td class="font-mono text-sm text-gray-600">{{ c.dni }}</td>
                 <td class="text-gray-500">{{ c.email }}</td>
@@ -55,12 +60,14 @@ import type { Client } from '../../core/models';
                 <td>
                   @if (c.isBlacklisted) {
                     <app-blacklisted-badge></app-blacklisted-badge>
+                  } @else if (c.wasBlacklisted) {
+                    <span class="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Ex-blacklist</span>
                   } @else {
                     <span class="text-xs text-gray-400">Normal</span>
                   }
                 </td>
                 <td><span class="text-sm text-gray-600">{{ c._count?.incidents ?? 0 }}</span></td>
-                <td class="space-x-0.5">
+                <td class="space-x-0.5" (click)="$event.stopPropagation()">
                   <button (click)="toggleBlacklist(c)" [title]="c.isBlacklisted ? 'Quitar de Blacklist' : 'Añadir a Blacklist'"
                           class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
                     <lucide-icon [img]="c.isBlacklisted ? ShieldOff : ShieldAlert" [size]="14"></lucide-icon>
@@ -83,6 +90,26 @@ import type { Client } from '../../core/models';
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -98,23 +125,33 @@ import type { Client } from '../../core/models';
               <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="form-label">Nombre completo *</label>
-                  <input formControlName="name" class="form-input" placeholder="Juan García López">
+                  <input formControlName="name" class="form-input"
+                         [class.form-field-error]="isInvalid('name')"
+                         placeholder="Juan García López">
                 </div>
                 <div>
                   <label class="form-label">DNI / NIE *</label>
-                  <input formControlName="dni" class="form-input" placeholder="12345678A">
+                  <input formControlName="dni" class="form-input"
+                         [class.form-field-error]="isInvalid('dni')"
+                         placeholder="12345678A">
                 </div>
                 <div>
                   <label class="form-label">Teléfono *</label>
-                  <input formControlName="phone" class="form-input" placeholder="600 000 000">
+                  <input formControlName="phone" class="form-input"
+                         [class.form-field-error]="isInvalid('phone')"
+                         placeholder="600 000 000">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Email *</label>
-                  <input formControlName="email" type="email" class="form-input" placeholder="juan@email.com">
+                  <input formControlName="email" type="email" class="form-input"
+                         [class.form-field-error]="isInvalid('email')"
+                         placeholder="juan@email.com">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Dirección</label>
-                  <input formControlName="address" class="form-input" placeholder="Calle Principal 1, Madrid">
+                  <input formControlName="address" class="form-input"
+                         [class.form-field-error]="isInvalid('address')"
+                         placeholder="Calle Principal 1, Madrid">
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Notas</label>
@@ -128,8 +165,9 @@ import type { Client } from '../../core/models';
                   <div class="col-span-2">
                     <label class="form-label">Razón de la Blacklist *</label>
                     <textarea formControlName="blacklistReason" class="form-textarea" rows="2"
+                              [class.form-field-error]="isBlacklistReasonInvalid()"
                               placeholder="Motivo por el que se añade a la Blacklist..."></textarea>
-                    @if (form.get('blacklistReason')?.invalid && form.get('blacklistReason')?.touched) {
+                    @if (isBlacklistReasonInvalid()) {
                       <p class="text-xs text-red-500 mt-1">La razón es obligatoria al añadir a la Blacklist</p>
                     }
                   </div>
@@ -189,16 +227,43 @@ import type { Client } from '../../core/models';
       </div>
     }
 
+    <!-- Unblacklist confirmation modal -->
+    @if (unblacklistTarget()) {
+      <div class="modal-overlay">
+        <div class="modal-inner">
+          <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <lucide-icon [img]="ShieldOff" [size]="16" class="text-amber-600"></lucide-icon>
+              </div>
+              <h2 class="text-base font-semibold text-gray-900">¿Quitar de la Blacklist?</h2>
+            </div>
+            <p class="text-sm text-gray-500 mb-6">
+              Vas a quitar a <span class="font-semibold text-gray-900">{{ unblacklistTarget()!.name }}</span> de la lista negra.
+              Podrá volver a alquilar vehículos con normalidad.
+            </p>
+            <div class="flex justify-end gap-3">
+              <app-button variant="secondary" (clicked)="unblacklistTarget.set(null)">Cancelar</app-button>
+              <app-button variant="warning" [loading]="blacklisting()" (clicked)="confirmRemoveFromBlacklist()">Quitar de Blacklist</app-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Delete modal -->
     @if (deleteId()) {
       <div class="modal-overlay">
         <div class="modal-inner">
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
-            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar cliente?</h2>
-            <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            <h2 class="text-base font-semibold text-gray-900 mb-1">¿Dar de baja cliente?</h2>
+            <p class="text-sm text-gray-500 mb-6">Se ocultará de los listados activos, pero se conservará su historial.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
-              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
+              <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Dar de baja</app-button>
             </div>
           </div>
         </div>
@@ -208,6 +273,7 @@ import type { Client } from '../../core/models';
 })
 export class ClientListComponent implements OnInit {
   private clientsService = inject(ClientsService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
 
@@ -224,15 +290,21 @@ export class ClientListComponent implements OnInit {
   deleting = signal(false);
   blacklisting = signal(false);
   saveError = signal<string | null>(null);
+  loadError = signal<string | null>(null);
   clients = signal<Client[]>([]);
   search = signal('');
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
   blacklistTarget = signal<Client | null>(null);
+  unblacklistTarget = signal<Client | null>(null);
   blacklistReasonText = '';
   blacklistReasonError = signal(false);
   blacklistApiError = signal<string | null>(null);
+  submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
 
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
@@ -252,36 +324,88 @@ export class ClientListComponent implements OnInit {
       return matchSearch;
     });
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() { this.load(); }
 
+  goToDetail(id: number) { this.router.navigate(['/clients', id]); }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
+  }
+
   load() {
+    this.loadError.set(null);
     this.clientsService.getAll().subscribe({
-      next: data => { this.clients.set(data); this.loading.set(false); },
-      error: () => this.loading.set(false),
+      next: data => {
+        this.clients.set(data);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.clients.set([]);
+        this.loading.set(false);
+        this.loadError.set(err?.error?.message ?? 'No se han podido cargar los clientes');
+      },
     });
   }
 
   openCreate() {
     this.editingId.set(null);
+    this.submitted.set(false);
+    this.saveError.set(null);
     this.form.reset({ isBlacklisted: false });
     this.showModal.set(true);
   }
 
   openEdit(c: Client) {
     this.editingId.set(c.id);
+    this.submitted.set(false);
+    this.saveError.set(null);
     this.form.patchValue(c);
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.saveError.set(null); }
+  closeModal() {
+    this.showModal.set(false);
+    this.saveError.set(null);
+    this.submitted.set(false);
+  }
+
+  isInvalid(controlName: keyof typeof this.form.controls) {
+    const control = this.form.controls[controlName];
+    return control.invalid && (control.touched || control.dirty || this.submitted());
+  }
+
+  isBlacklistReasonInvalid() {
+    const control = this.form.controls.blacklistReason;
+    return !!this.form.controls.isBlacklisted.value
+      && !control.value?.trim()
+      && (control.touched || control.dirty || this.submitted());
+  }
 
   save() {
-    if (this.form.get('isBlacklisted')?.value && !this.form.get('blacklistReason')?.value?.trim()) {
-      this.form.get('blacklistReason')!.markAsTouched();
+    this.submitted.set(true);
+    this.saveError.set(null);
+    if (this.form.invalid || this.isBlacklistReasonInvalid()) {
+      this.form.markAllAsTouched();
+      Object.values(this.form.controls).forEach(control => control.markAsDirty());
       return;
     }
-    if (this.form.invalid) return;
     this.saving.set(true);
     const v = this.form.value;
     const data: Partial<Client> & { blacklistReason?: string } = {
@@ -308,20 +432,30 @@ export class ClientListComponent implements OnInit {
 
   toggleBlacklist(c: Client) {
     if (c.isBlacklisted) {
-      this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
-        next: () => {
-          this.clients.update(list =>
-            list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
-          );
-          this.toastService.success('Cliente eliminado de la blacklist');
-        },
-      });
+      this.unblacklistTarget.set(c);
     } else {
       this.blacklistReasonText = '';
       this.blacklistReasonError.set(false);
       this.blacklistApiError.set(null);
       this.blacklistTarget.set(c);
     }
+  }
+
+  confirmRemoveFromBlacklist() {
+    const c = this.unblacklistTarget();
+    if (!c) return;
+    this.blacklisting.set(true);
+    this.clientsService.update(c.id, { isBlacklisted: false }).subscribe({
+      next: () => {
+        this.blacklisting.set(false);
+        this.unblacklistTarget.set(null);
+        this.clients.update(list =>
+          list.map(x => x.id === c.id ? { ...x, isBlacklisted: false, blacklistReason: undefined, blacklistedAt: undefined } : x)
+        );
+        this.toastService.success('Cliente eliminado de la blacklist');
+      },
+      error: () => this.blacklisting.set(false),
+    });
   }
 
   confirmAddToBlacklist() {
@@ -349,14 +483,25 @@ export class ClientListComponent implements OnInit {
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.clientsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Cliente eliminado correctamente'); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); this.toastService.success('Cliente eliminado correctamente'); },
+      error: (err: any) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido dar de baja el cliente');
+      },
     });
   }
 }

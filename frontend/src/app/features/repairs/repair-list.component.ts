@@ -42,12 +42,12 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
     <div class="flex items-center gap-3 mb-5 flex-wrap">
       <div class="relative flex-1 max-w-xs">
         <lucide-icon [img]="Search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></lucide-icon>
-        <input [value]="search()" (input)="search.set($any($event.target).value)"
+        <input [value]="search()" (input)="setSearch($any($event.target).value)"
                class="form-input pl-9" placeholder="Buscar por matrícula, marca, modelo, descripción...">
       </div>
       @for (s of statuses; track s.value) {
         <button [class]="'filter-tab ' + (statusFilter() === s.value ? 'filter-tab-active' : 'filter-tab-inactive')"
-                (click)="statusFilter.set(s.value)">{{ s.label }}</button>
+                (click)="setStatusFilter(s.value)">{{ s.label }}</button>
       }
     </div>
 
@@ -68,7 +68,7 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
             </tr>
           </thead>
           <tbody>
-            @for (r of filtered(); track r.id) {
+            @for (r of paginated(); track r.id) {
               <tr>
                 <td>
                   <p class="font-mono font-medium text-gray-900">{{ r.car.licensePlate }}</p>
@@ -98,6 +98,26 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
             }
           </tbody>
         </table>
+        @if (filtered().length > pageSize) {
+          <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+            <p class="text-sm text-gray-500">
+              Mostrando {{ pageStart() }}-{{ pageEnd() }} de {{ filtered().length }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === 1"
+                      [class.opacity-50]="currentPage() === 1"
+                      [class.cursor-not-allowed]="currentPage() === 1"
+                      (click)="previousPage()">Anterior</button>
+              <span class="text-sm text-gray-500">Página {{ currentPage() }} de {{ totalPages() }}</span>
+              <button type="button" class="filter-tab filter-tab-inactive"
+                      [disabled]="currentPage() === totalPages()"
+                      [class.opacity-50]="currentPage() === totalPages()"
+                      [class.cursor-not-allowed]="currentPage() === totalPages()"
+                      (click)="nextPage()">Siguiente</button>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -110,14 +130,42 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
             </div>
             <form [formGroup]="form" (ngSubmit)="save()" class="p-6">
               <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+                <div class="col-span-2 relative">
                   <label class="form-label">Vehículo *</label>
-                  <select formControlName="carId" class="form-select" [class.form-field-error]="isInvalid('carId')">
-                    <option [ngValue]="null" disabled>Seleccionar vehículo</option>
-                    @for (c of carOptions(); track c.id) {
-                      <option [ngValue]="c.id">{{ c.licensePlate }} — {{ c.brand }} {{ c.model }}</option>
+                  @if (selectedCar()) {
+                    <div class="form-input flex items-center justify-between cursor-default">
+                      <span class="text-gray-900 font-mono">{{ selectedCar()!.licensePlate }}
+                        <span class="ml-1 font-sans font-normal text-xs text-gray-400">{{ selectedCar()!.brand }} {{ selectedCar()!.model }}</span>
+                      </span>
+                      <button type="button" (click)="clearCar()"
+                              class="ml-2 text-gray-400 hover:text-gray-700 leading-none">✕</button>
+                    </div>
+                  } @else {
+                    <input type="text" class="form-input" [class.form-field-error]="isInvalid('carId')"
+                           placeholder="Buscar por matrícula o modelo..."
+                           [value]="carQuery()"
+                           (input)="onCarSearch($any($event.target).value)"
+                           (focus)="showCarSuggestions.set(true)"
+                           (blur)="onCarBlur()"
+                           autocomplete="off">
+                    @if (showCarSuggestions() && carQuery().length > 0) {
+                      <ul class="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                        @if (carSuggestions().length > 0) {
+                          @for (c of carSuggestions(); track c.id) {
+                            <li>
+                              <button type="button" (mousedown)="selectCar(c)"
+                                      class="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm">
+                                <span class="font-mono font-medium text-gray-900">{{ c.licensePlate }}</span>
+                                <span class="ml-2 text-xs text-gray-400">{{ c.brand }} {{ c.model }}</span>
+                              </button>
+                            </li>
+                          }
+                        } @else {
+                          <li class="px-4 py-3 text-sm text-gray-400">Sin resultados</li>
+                        }
+                      </ul>
                     }
-                  </select>
+                  }
                 </div>
                 <div class="col-span-2">
                   <label class="form-label">Descripción *</label>
@@ -166,8 +214,11 @@ function repairDateRangeValidator(control: AbstractControl): ValidationErrors | 
           <div class="modal-dialog bg-white rounded-2xl max-w-sm shadow-2xl p-6">
             <h2 class="text-base font-semibold text-gray-900 mb-1">¿Eliminar reparación?</h2>
             <p class="text-sm text-gray-500 mb-6">Esta acción no se puede deshacer.</p>
+            @if (deleteError()) {
+              <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{{ deleteError() }}</p>
+            }
             <div class="flex justify-end gap-3">
-              <app-button variant="secondary" (clicked)="deleteId.set(null)">Cancelar</app-button>
+              <app-button variant="secondary" (clicked)="closeDeleteModal()">Cancelar</app-button>
               <app-button variant="danger" [loading]="deleting()" (clicked)="doDelete()">Eliminar</app-button>
             </div>
           </div>
@@ -206,7 +257,21 @@ export class RepairListComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<number | null>(null);
   deleteId = signal<number | null>(null);
+  deleteError = signal<string | null>(null);
   submitted = signal(false);
+  readonly pageSize = 10;
+  currentPage = signal(1);
+
+  carQuery = signal('');
+  showCarSuggestions = signal(false);
+  selectedCar = signal<Car | null>(null);
+  carSuggestions = computed(() => {
+    const q = this.carQuery().toLowerCase().trim();
+    if (!q) return [];
+    return this.carOptions().filter(c =>
+      c.licensePlate.toLowerCase().includes(q) || c.model.toLowerCase().includes(q)
+    ).slice(0, 8);
+  });
 
   form = this.fb.group({
     carId: [null as number | null, Validators.required],
@@ -228,10 +293,35 @@ export class RepairListComponent implements OnInit {
       return matchSearch && matchStatus;
     });
   });
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize)));
+  paginated = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  pageStart = computed(() => this.filtered().length === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize) + 1);
+  pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize, this.filtered().length));
 
   ngOnInit() {
     this.load();
     this.carsService.getAll().subscribe({ next: data => this.carOptions.set(data) });
+  }
+
+  setSearch(value: string) {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
+  setStatusFilter(status: RepairStatus | '') {
+    this.statusFilter.set(status);
+    this.currentPage.set(1);
+  }
+
+  previousPage() {
+    this.currentPage.update(page => Math.max(1, page - 1));
+  }
+
+  nextPage() {
+    this.currentPage.update(page => Math.min(this.totalPages(), page + 1));
   }
 
   load() {
@@ -244,6 +334,9 @@ export class RepairListComponent implements OnInit {
   openCreate() {
     this.editingId.set(null);
     this.submitted.set(false);
+    this.selectedCar.set(null);
+    this.carQuery.set('');
+    this.showCarSuggestions.set(false);
     this.form.reset({ status: 'PENDING' });
     this.showModal.set(true);
   }
@@ -251,6 +344,9 @@ export class RepairListComponent implements OnInit {
   openEdit(r: Repair) {
     this.editingId.set(r.id);
     this.submitted.set(false);
+    this.carQuery.set('');
+    this.showCarSuggestions.set(false);
+    this.selectedCar.set(this.carOptions().find(c => c.id === r.carId) ?? null);
     this.form.patchValue({
       carId: r.carId,
       description: r.description,
@@ -262,7 +358,36 @@ export class RepairListComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  closeModal() { this.showModal.set(false); this.submitted.set(false); }
+  closeModal() {
+    this.showModal.set(false);
+    this.submitted.set(false);
+    this.selectedCar.set(null);
+    this.carQuery.set('');
+  }
+
+  onCarSearch(value: string) {
+    this.carQuery.set(value);
+    this.form.controls.carId.setValue(null);
+    this.selectedCar.set(null);
+    this.showCarSuggestions.set(true);
+  }
+
+  selectCar(c: Car) {
+    this.selectedCar.set(c);
+    this.form.controls.carId.setValue(c.id);
+    this.showCarSuggestions.set(false);
+    this.carQuery.set('');
+  }
+
+  clearCar() {
+    this.selectedCar.set(null);
+    this.form.controls.carId.setValue(null);
+    this.carQuery.set('');
+  }
+
+  onCarBlur() {
+    setTimeout(() => this.showCarSuggestions.set(false), 150);
+  }
 
   isInvalid(controlName: keyof typeof this.form.controls) {
     const control = this.form.controls[controlName];
@@ -302,14 +427,25 @@ export class RepairListComponent implements OnInit {
     });
   }
 
-  confirmDelete(id: number) { this.deleteId.set(id); }
+  confirmDelete(id: number) {
+    this.deleteError.set(null);
+    this.deleteId.set(id);
+  }
+
+  closeDeleteModal() {
+    this.deleteId.set(null);
+    this.deleteError.set(null);
+  }
 
   doDelete() {
     if (!this.deleteId()) return;
     this.deleting.set(true);
     this.repairsService.delete(this.deleteId()!).subscribe({
-      next: () => { this.deleting.set(false); this.deleteId.set(null); this.load(); this.toastService.success('Reparación eliminada correctamente'); },
-      error: () => this.deleting.set(false),
+      next: () => { this.deleting.set(false); this.closeDeleteModal(); this.load(); this.toastService.success('Reparación eliminada correctamente'); },
+      error: (err: any) => {
+        this.deleting.set(false);
+        this.deleteError.set(err?.error?.message ?? 'No se ha podido eliminar la reparación');
+      },
     });
   }
 }

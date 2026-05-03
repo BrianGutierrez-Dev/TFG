@@ -5,6 +5,7 @@ import { LoginComponent } from './features/login/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { BlacklistComponent } from './features/blacklist/blacklist.component';
 import { ClientListComponent } from './features/clients/client-list.component';
+import { ClientDetailComponent } from './features/clients/client-detail.component';
 import { CarListComponent } from './features/cars/car-list.component';
 import { RentalListComponent } from './features/rentals/rental-list.component';
 import { RentalDetailComponent } from './features/rentals/rental-detail.component';
@@ -23,6 +24,7 @@ export const routes: Routes = [
       { path: '', component: DashboardComponent },
       { path: 'blacklist', component: BlacklistComponent },
       { path: 'clients', component: ClientListComponent },
+      { path: 'clients/:id', component: ClientDetailComponent },
       { path: 'cars', component: CarListComponent },
       { path: 'rentals', component: RentalListComponent },
       { path: 'rentals/:id', component: RentalDetailComponent },
