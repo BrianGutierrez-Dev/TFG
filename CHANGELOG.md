@@ -6,6 +6,8 @@ Nombre: Brian
 
 | Fecha       | Cambio                                                                                                    | Commit                                  |
 |-------------|-----------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| 03/05/2026  | Fix: regeneración del cliente Prisma tras merge — `isActive` en `Employee`, `Car` y `Client` no reconocido por el compilador | d8b0509        |
+| 03/05/2026  | Resolución de conflictos de merge en 7 componentes de lista — combinando manejo de errores de Carlos con toasts de Brian | d8b0509         |
 | 03/05/2026  | Sistema de toasts global: `ToastService` + `ToastComponent` integrado en el layout                        | pendiente                               |
 | 03/05/2026  | Toasts de éxito en todas las operaciones CRUD (clientes, vehículos, empleados, incidencias, mantenimientos, alquileres, reparaciones) | pendiente      |
 | 03/05/2026  | Fix: `auth.service.ts` — añadido `next:` handler en `/api/auth/me` para mantener datos del empleado actualizados | pendiente                        |
