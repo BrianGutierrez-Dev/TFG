@@ -34,3 +34,7 @@ desktop.ini
 
 # ─── Editor ──────────────────────────────────────
 .vscode/settings.local.json
+
+# VSCode local config
+.vscode/
+frontend/.vscode/
