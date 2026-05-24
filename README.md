@@ -56,6 +56,7 @@ Editar el archivo `.env` con tus credenciales:
 ```env
 DATABASE_URL="postgresql://usuario:password@localhost:5432/blacklist_db?schema=public"
 JWT_SECRET="tu_clave_secreta"
+JWT_EXPIRES_IN="8h"
 PORT=3000
 ```
 
@@ -86,9 +87,18 @@ npm run dev
 
 | Campo | Valor |
 |-------|-------|
-| Email | admin@blacklist.com |
+| Email | admin@taller.com |
 | Contraseña | admin1234 |
 | Rol | ADMIN |
+
+## 💡 Guía rápida de prueba
+
+Para comprobar el flujo principal del Trabajo de Fin de Grado (la automatización de la Lista Negra), sigue estos pasos:
+1. Inicia sesión con las credenciales de administrador indicadas arriba.
+2. Ve al módulo **Clientes** y observa a los usuarios en estado normal.
+3. Ve al módulo **Devoluciones (CarReturn)** y registra una nueva devolución de vehículo.
+4. Marca que el vehículo se ha devuelto con **daños encontrados** o fuera de plazo.
+5. El backend creará automáticamente una **Incidencia**. Al acumular incidencias graves, el cliente pasará automáticamente a la **Lista Negra** y quedará bloqueado en el sistema.
 
 ## Estructura del proyecto
 
@@ -102,11 +112,11 @@ blacklist-app/
 │       ├── middleware/  # Auth, validación, errores
 │       └── dtos/        # Validación de datos de entrada
 └── frontend/
-└── src/app/
-├── core/        # Guards, interceptors, servicios
-├── features/    # Módulos funcionales
-├── layout/      # Navbar y estructura
-└── shared/      # Componentes reutilizables
+    └── src/app/
+        ├── core/        # Guards, interceptors, servicios
+        ├── features/    # Módulos funcionales
+        ├── layout/      # Navbar y estructura
+        └── shared/      # Componentes reutilizables
 
 ## Autores
 
