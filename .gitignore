@@ -1,4 +1,40 @@
-node_modules
-dist
-dist-electron/
+# ─── Dependencias ───────────────────────────────
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# ─── Variables de entorno ────────────────────────
 .env
+backend/.env
+.env.local
+.env.*.local
+
+# ─── Builds generados ────────────────────────────
+dist/
+backend/dist/
+frontend/dist/
+
+# ─── Angular ─────────────────────────────────────
+.angular/
+frontend/.angular/
+
+# ─── Prisma cliente generado ─────────────────────
+/src/generated/prisma
+backend/src/generated/
+
+# ─── Logs ────────────────────────────────────────
+*.log
+npm-debug.log*
+logs/
+
+# ─── Sistema operativo ───────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Editor ──────────────────────────────────────
+.vscode/settings.local.json
+
+# VSCode local config
+.vscode/
+frontend/.vscode/

@@ -109,7 +109,7 @@ async function main() {
   );
 
   await Promise.all(
-    contracts.map((contract, i) => {
+    contracts.map((contract: any, i: number) => {
       const endDate = new Date(contract.endDate);
       const returnDate = new Date(endDate.getTime() + (i % 6 === 0 ? 2 : 0) * DAY_MS);
       return prisma.carReturn.create({
